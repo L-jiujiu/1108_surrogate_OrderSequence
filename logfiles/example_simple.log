@@ -1,0 +1,11 @@
+INFO:pySOT.strategy.surrogate_strategy:=== Start ===
+INFO:pySOT.strategy.surrogate_strategy:1 1.166e+04 @ [1.      0.28571 0.28571]
+INFO:pySOT.strategy.surrogate_strategy:2 1.506e+04 @ [0.85714 0.      0.85714]
+INFO:pySOT.strategy.surrogate_strategy:3 1.275e+04 @ [0.71429 0.85714 0.42857]
+INFO:pySOT.strategy.surrogate_strategy:4 1.321e+04 @ [0.57143 0.57143 1.     ]
+INFO:pySOT.strategy.surrogate_strategy:5 1.255e+04 @ [0.42857 0.42857 0.     ]
+INFO:pySOT.strategy.surrogate_strategy:6 1.294e+04 @ [0.28571 0.14286 0.57143]
+INFO:pySOT.strategy.surrogate_strategy:7 1.426e+04 @ [0.14286 1.      0.14286]
+INFO:pySOT.strategy.surrogate_strategy:8 1.710e+04 @ [0.      0.71429 0.71429]
+INFO:pySOT.strategy.surrogate_strategy:9 1.187e+04 @ [0.9976  0.47182 0.00356]
+INFO:pySOT.strategy.surrogate_strategy:10 1.197e+04 @ [1.      0.3272  0.20612]
