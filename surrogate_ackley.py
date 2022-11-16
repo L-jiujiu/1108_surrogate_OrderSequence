@@ -41,24 +41,32 @@ class Ackley(OptimizationProblem):
         :rtype: float
         """
         self.__check_input__(x)
+        from simulation_config import simulation_config
+
         surrogate_weight = x
         print(f'\nx:{x}')
 
-        from simulation_config import simulation_config
         simulation_config['weight']=surrogate_weight
         simulation_1 = Simulation(simulation_config)  # 初始化仿真实例
-        T_last,jam_1,jam_2,busy_variance= simulation_1.run()  # 运行仿真
+        results = simulation_1.run()  # 运行仿真
+        T_last = results['T_last']
+        jam_1 = results['jam_1']
+        jam_2 = results['jam_2']
+        busy_variance = results['busy_variance']
+
         # print(f'111111111111,本轮仿真结果已更新:{T_last}')
 
         # min_timespan是减少总用时，min_jam_sum是减少拥堵次数
         if simulation_config['type']=='min_timespan':
             return float(T_last)
-        elif simulation_config['type']=='min_jam_sum':
+        elif simulation_config['type']=='min_sum':
             return float(jam_1+jam_2)
         elif simulation_config['type']=='min_mix':
             return float(T_last+jam_1+jam_2)
         elif simulation_config['type']=='min_variance':
             return float(busy_variance)
+        elif simulation_config['type']=='min_all':
+            return float(T_last/6.944+(jam_1+jam_2)/0.88+busy_variance/22.728)
         else:
             print('未定义返回参数！')
             return float(T_last)

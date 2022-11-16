@@ -13,6 +13,7 @@ from surrogate_ackley import Ackley
 from pySOT.strategy import SOPStrategy
 from pySOT.surrogate import CubicKernel, LinearTail, RBFInterpolant
 import time as tm
+from simulation_config import simulation_config
 
 
 def example_sop(sop_config):
@@ -26,10 +27,8 @@ def example_sop(sop_config):
     max_evals = sop_config['max_evals']
 
     ackley = Ackley()
-
     rbf = RBFInterpolant(dim=ackley.dim, lb=ackley.lb, ub=ackley.ub, kernel=CubicKernel(), tail=LinearTail(ackley.dim))
     slhd = SymmetricLatinHypercube(dim=ackley.dim, num_pts=2 * (ackley.dim + 1))
-
     # Create a strategy and a controller
     controller = ThreadController()
     controller.strategy = SOPStrategy(
@@ -41,7 +40,6 @@ def example_sop(sop_config):
         ncenters=num_threads,
         batch_size=num_threads,
     )
-
     print("Number of threads: {}".format(num_threads))
     print("Maximum number of evaluations: {}".format(max_evals))
     print("Strategy: {}".format(controller.strategy.__class__.__name__))
@@ -56,22 +54,24 @@ def example_sop(sop_config):
     # Run the optimization strategy
     result = controller.run()
 
+    # print("\nBest value found: {0}".format(result.value))
+    # print(
+    #     "Best solution found: {0}\n".format(
+    #         np.array_str(result.params[0], max_line_width=np.inf, precision=5, suppress_small=True)
+    #     )
+    # )
+    return result
+
+
+if __name__ == "__main__":
+    start = tm.perf_counter()  # 记录当前时刻
+    result=example_sop(simulation_config)
+
     print("\nBest value found: {0}".format(result.value))
     print(
         "Best solution found: {0}\n".format(
             np.array_str(result.params[0], max_line_width=np.inf, precision=5, suppress_small=True)
         )
     )
-
-
-if __name__ == "__main__":
-    start = tm.perf_counter()  # 记录当前时刻
-
-    sop_config={
-        'num_threads':1,
-        'max_evals':30,
-    }
-    example_sop(sop_config)
-
     end = tm.perf_counter()
     print("程序共计用时 : %s Seconds " % (end - start))

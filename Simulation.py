@@ -18,7 +18,7 @@ class Simulation:
         self.path_order_sku_map = simulation_config['path_order_sku_map']
         self.path_sku_time_map = simulation_config['path_sku_time_map']
 
-        self.type = simulation_config['type']
+        self.type = simulation_config['type_order']
         self.pace = simulation_config['pace']
 
         # 1、初始化section
@@ -51,6 +51,7 @@ class Simulation:
         self.weight = simulation_config['weight']
         self.busy_section = [0, 0, 0, 0, 0, 0]  # 工站繁忙的总次数
         self.busy_variance_sum=0
+        self.op_method = simulation_config['optimization_method']
 
         # 测试数据
         # for order in self.order_notstart:
@@ -425,31 +426,46 @@ class Simulation:
                 break
 
         # 展示数据（总结）
-        # print('[Order：%d ' % self.num_order,'Sku：%d]' % self.num_sku,',type:%s'%self.type,',pace:%d'%self.pace,'\nsku_time信息:%s'%self.sku_time_num)
-        print('完成全部订单共计循环次数：%d' % T_last)
-        print('主路-1拥堵情况：%d' % self.data_analysis.main_jam_1, '主路-2拥堵情况：%d' % self.data_analysis.main_jam_2)
-        # # 计算忙碌的方差：
-        print(f'各section忙碌情况的方差为：{np.var(self.busy_section)},平均值为：{np.mean(self.busy_section)},busy_section:{self.busy_section}')
-        print(f'工时方差为：{self.busy_variance_sum}')
+        if(self.op_method=='surrogate'):
+            # print('[Order：%d ' % self.num_order,'Sku：%d]' % self.num_sku,',type:%s'%self.type,',pace:%d'%self.pace,'\nsku_time信息:%s'%self.sku_time_num)
+            print('完成全部订单共计循环次数：%d' % T_last)
+            print('主路-1拥堵情况：%d' % self.data_analysis.main_jam_1, '主路-2拥堵情况：%d' % self.data_analysis.main_jam_2)
+            # # 计算忙碌的方差：
+            print(f'各section忙碌情况的方差为：{np.var(self.busy_section)},平均值为：{np.mean(self.busy_section)},busy_section:{self.busy_section}')
+            print(f'工时方差为：{self.busy_variance_sum}')
 
         self.data_analysis.xls_output(self.order_start, self.type)
 
-        return T_last, self.data_analysis.main_jam_1, self.data_analysis.main_jam_2,self.busy_variance_sum
-
+        results={
+                    'T_last': T_last,
+                    'jam_1':self.data_analysis.main_jam_1,
+                    'jam_2':self.data_analysis.main_jam_2,
+                    'busy_variance':self.busy_variance_sum,
+        }
+        return results
 
 if __name__ == "__main__":
     start = tm.perf_counter()  # 记录当前时刻
     # cwd = os.getcwd()  # 读取当前文件夹路径
 
     # surrogate_weight=[1,0,0]
-    # surrogate_weight = [0.71084,0.99722,0.30419]
-    surrogate_weight = [1,0.28571,0.28571]
+    # surrogate_weight = [0.81708383,0.64884249,0.27365036]
+    surrogate_weight = [1,0.76399,0.43427]
+    # surrogate_weight=[1,0.7,0.5]
 
     from simulation_config import simulation_config
     simulation_config['weight'] = surrogate_weight
 
     simulation_1 = Simulation(simulation_config)  # 初始化仿真实例
-    T_last, jam_1, jam_2,busy_variance = simulation_1.run()  # 运行仿真
+    results = simulation_1.run()  # 运行仿真
+    T_last=results['T_last']
+    jam_1=results['jam_1']
+    jam_2=results['jam_2']
+    busy_variance=results['busy_variance']
+
+
+    print(results)
+    print(T_last,jam_1,jam_2,busy_variance)
     # simulation_1.data_analysis.plot_results_plotly() #绘图
 
     end = tm.perf_counter()
