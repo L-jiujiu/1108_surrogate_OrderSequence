@@ -142,7 +142,107 @@ def Func_Cost_sequence(
     return order_return
 
 # 输出格式函数，用于测试
+def Func_Cost_sequence_simple_origin(
+        order_can,
+        section_list,
+        order_list,
+        order_before_section,
+        weight):
+    cost = []
+    order_min_can = []  # cost相同的订单集合，从中选择最小
+    order_min_can_can = []
+    order_return = None
+    # print(f'weight:{weight}')
+    for i in range(len(order_can)):
+        order_can[i].Cost_cal(section_list=section_list, weight=weight)
+        cost_input = {
+            'name': order_can[i].name,  # order名
+            'order': 0,  # 即将进行的订单序号
+            'cost': order_can[i].weighted_cost,  # cost
+            'orderfororder': i,  # 原本的序号
+        }
+        cost.append(CostList(cost_input))
+    # 对成本以cost为键排序
+    sortkey = operator.attrgetter('cost')
+    cost.sort(key=sortkey)
 
+    for i in range(len(cost)):
+        cost[i].order = i  # cost.order是按照cost排序后的order顺序
+    order_return = order_can[cost[0].orderfororder]
+
+    return order_return
+
+def Func_Cost_sequence_simple(
+        order_can,
+        section_list,
+        order_before_section,
+        weight):
+
+    cost = []
+    order_return = None
+    # print(f'weight:{weight}')
+    for i in range(len(order_can)):
+        order_can[i].Cost_cal(section_list=section_list,weight=weight)
+        cost_input = {
+            'name': order_can[i].name,  # order名
+            'order': 0,  # 即将进行的订单序号
+            'cost': order_can[i].weighted_cost,  # cost
+            'orderfororder': i,  # 原本的序号
+        }
+        cost.append(CostList(cost_input))
+    # 对成本以cost为键排序
+    sortkey = operator.attrgetter('cost')
+    cost.sort(key=sortkey)
+    min_val=cost[0].cost
+    # print(min_val)
+    min_cost_list=[]
+
+    for i in range(len(cost)):
+        if cost[i].cost == min_val:
+            min_cost_list.append(cost[i])
+    # print(min_cost_list)
+
+    flag=0
+    if len(min_cost_list) > 1:
+        for i in min_cost_list:
+            section_now_num, schedule_now_num = Find_Section_now_num(order_can[i.orderfororder])
+            if section_now_num!=order_before_section:
+                flag=1
+                return order_can[i.orderfororder]
+
+    if (len(min_cost_list) ==1) or (flag==0):
+        order_return = order_can[min_cost_list[0].orderfororder]
+        return order_return
+
+def Check_jam(order_return,section_list):
+    # work_step[i][j]：[i]对应第i步；[j=0]对应section名，[j=1]对应工序用时
+    order_now='error'
+    if order_return is not None:
+        work_step = order_return.work_schedule
+        if (int(work_step[0][0]) >= 0):  # 如果第0步不为mainstream，则不堵
+            all_order_num = len(section_list[int(work_step[0][0])].waiting_order_list) + len(
+                section_list[int(work_step[0][0])].process_order_list) + len(
+                section_list[int(work_step[0][0])].finish_order_list)
+            if (all_order_num < 6):  # 找到第一步不是mainstream的判断，如果第i步的等待数量小于6，则可以被派发
+                order_now = order_return
+        else:  # 如果第0为mainstream
+            if (len(section_list[int(work_step[0][0])].waiting_order_list) + len(
+                    section_list[int(work_step[0][0])].finish_order_list) == 0):  # 如果第0步为mainstream，并且第0步等待数量为0，
+                if (int(work_step[1][0]) >= 0):  # 如果第1步不为mainstream，则不堵
+                    all_order_num = len(section_list[int(work_step[1][0])].waiting_order_list) + len(
+                        section_list[int(work_step[1][0])].process_order_list) + len(
+                        section_list[int(work_step[1][0])].finish_order_list)
+                    if (all_order_num < 6):  # 找到第一步不是mainstream的判断，如果第i步的等待数量小于6，则可以被派发
+                        order_now = order_return
+                else:  # 如果第1步为mainstream，则继续判断第1步等待数量
+                    if (len(section_list[int(work_step[1][0])].waiting_order_list) + len(
+                            section_list[int(work_step[1][0])].finish_order_list) == 0):  # 如果第1步等待数量为0，则不堵，否则堵
+                        all_order_num = len(section_list[int(work_step[2][0])].waiting_order_list) + len(
+                                section_list[int(work_step[2][0])].process_order_list) + len(
+                                section_list[int(work_step[2][0])].finish_order_list)
+                        if (all_order_num < 6):  # 找到第一步不是mainstream的判断，如果第i步的等待数量小于6，则可以被派发
+                            order_now = order_return
+    return order_now
 
 def display_order_list_simple(order_list):
     for order in order_list:

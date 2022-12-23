@@ -23,69 +23,11 @@ class GaSolver(ea.Problem):
         # 调用父类构造方法完成实例化
         ea.Problem.__init__(self, name, M, maxormins, Dim, varTypes, lb, ub, lbin, ubin)
 
-    def convert_solution(self, Vars):
-        # GA编码数量 = num_center_warehouse + num_lead_warehouse + 2, 通过该function转成0-1编码
-
-        num_center_warehouse = self.problem_instance.num_alter_warehouse
-        num_lead_warehouse = self.problem_instance.num_alter_warehouse
-        num_alter_warehouse = self.problem_instance.num_alter_warehouse
-
-        alter_solution = np.zeros(num_alter_warehouse)
-        center_solution = np.zeros(num_alter_warehouse)
-        lead_solution = np.zeros(num_alter_warehouse)
-
-        alter_warehouse_code = Vars[:num_alter_warehouse]
-
-        # center_warehouse_code = Vars[:num_center_warehouse]  # 中心仓编码[0, 1]实数, 根据数值大小确定是否建仓
-        # lead_warehouse_code = Vars[num_center_warehouse:num_center_warehouse + num_lead_warehouse]  # 前置仓编码
-
-        center_num_code = Vars[-2]  # 中心仓数量编码: [0, 1]实数; 若启动数量约束, 则该数值不使用
-        lead_num_code = Vars[-1]  # 前置仓数量编码: [0, 1]实数
-
-        if self.fixed_center_warehouse >= 0:  # 若 >=0, 则要求中心仓建仓数等于该值
-            num_selected_center_warehouse = self.fixed_center_warehouse  # 固定建仓数量
-        else:  # 未固定建仓数量
-            # 例: 假设有10个备选中心仓, 相当于从 (-0.5, 10.5) 均匀分布中产生数值, 取整后作为建仓数量
-            num_selected_center_warehouse = int(
-                np.max(np.round(center_num_code * (num_center_warehouse + 1) - 0.5001), 0))  # 取0.5001避免浮点数偏差
-        center_threshold = np.abs(np.sort(-alter_warehouse_code))[num_selected_center_warehouse - 1] \
-            if num_selected_center_warehouse > 0 else 1  # 倒序选择前 num 个仓库建仓
-        center_selected_index = np.where(alter_warehouse_code >= center_threshold)[0][:num_selected_center_warehouse]
-        alter_solution[center_selected_index] = 1
-        center_solution[center_selected_index] = 1
-
-        if self.fixed_lead_warehouse >= 0:
-            num_selected_lead_warehouse = self.fixed_lead_warehouse
-        else:
-            num_selected_lead_warehouse = int(
-                np.max(np.round(lead_num_code * (num_lead_warehouse - num_selected_center_warehouse) - 0.5001),
-                       0))  # 取0.5001避免浮点数偏差
-
-        # print(num_selected_lead_warehouse)
-        lead_threshold = np.abs(np.sort(-alter_warehouse_code))[
-            num_selected_lead_warehouse + num_selected_center_warehouse] \
-            if num_selected_lead_warehouse > 0 else np.inf
-        lead_selected_index = np.where(alter_warehouse_code >= lead_threshold)[0][
-                              num_selected_center_warehouse + 1:num_selected_center_warehouse + 1 + num_selected_lead_warehouse]
-        # print(lead_selected_index)
-
-        alter_solution[lead_selected_index] = 1
-        lead_solution[lead_selected_index] = 1
-
-        # print(f"num:{num_selected_center_warehouse},center_selected_index:{center_selected_index}")
-        # print(f"num:{num_selected_lead_warehouse},lead_selected_index:{lead_selected_index}")
-        results = {
-            'alter_solution': alter_solution.astype(int),
-            'lead_solution': lead_solution.astype(int),
-            'center_solution': center_solution.astype(int),
-        }
-        return results
-
     def evalVars(self, Vars):
         # 评估目标函数
         total_cost_array = np.zeros(Vars.shape[0])
         for i in range(Vars.shape[0]):
-            # print(Vars[i, :])
+            print(Vars[i, :])
             simulation_config['weight'] = Vars[i, :]
             simulation_1 = Simulation(simulation_config)  # 初始化仿真实例
             results = simulation_1.run()  # 运行仿真
@@ -122,9 +64,10 @@ def example_GA(simulation_config):
         problem = GaSolver(simulation_config)
         # 构建算法：增强精英保留的遗传算法模板
         algorithm = ea.soea_SEGA_templet(problem,
-                                         ea.Population(Encoding='RI', NIND=5),
+                                         ea.Population(Encoding='RI', NIND=simulation_config['NIND']), # 10+
                                          # 实例化种群对象:Encoding编码方式,NIND所需要的个体数,RI-实整数编码，实数和整数的混合编码
                                          MAXGEN=simulation_config['MaxGen'],  # 最大进化代数
+                                         MAXTIME=simulation_config['MaxTime'],   # 最大运行时间
                                          logTras=1,  # 表示每隔多少代记录一次日志信息，0表示不记录。
                                          trappedValue=1e-6,  # 单目标优化陷入停滞的判断阈值。
                                          maxTrappedCount=15)  # 进化停滞计数器最大上限值。

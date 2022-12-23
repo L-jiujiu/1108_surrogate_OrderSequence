@@ -9,7 +9,8 @@ import time as tm
 import os
 
 from Class import Sku, Section, Order, Time, Data_Analysis
-from Other_Functions import Func_Cost_sequence, Find_Section_now_num, display_order_list_simple, display_order_list
+from Other_Functions import Func_Cost_sequence, Find_Section_now_num, Func_Cost_sequence_simple, Check_jam, \
+    display_order_list_simple, display_order_list
 
 
 class Simulation:
@@ -50,9 +51,12 @@ class Simulation:
         # + surrogate
         self.weight = simulation_config['weight']
         self.busy_section = [0, 0, 0, 0, 0, 0]  # 工站繁忙的总次数
-        self.busy_variance_sum=0
+        self.busy_variance_sum = 0
         self.op_method = simulation_config['optimization_method']
 
+        self.order_list_GA = simulation_config['order_list_GA']
+        # self.order_list_GA=list(reversed(range(0,173)))
+        # print(self.order_list_GA)
         # 测试数据
         # for order in self.order_notstart:
         #     if(order.name=='89293976181700'):
@@ -166,9 +170,9 @@ class Simulation:
             for p in range(len(work_schedule_origin)):
                 key_num = int(int(work_schedule_origin[p][0]) / 100) - 17
                 work_schedule_dic[str(key_num)] = work_schedule_origin[p][1]
-            for i in range(6):
-                if (work_schedule_dic[str(i)] == 0):
-                    work_schedule_dic.pop(str(i))
+            for ii in range(6):
+                if (work_schedule_dic[str(ii)] == 0):
+                    work_schedule_dic.pop(str(ii))
             work_schedule = [[k, v] for k, v in work_schedule_dic.items()]  # 将字典转化为列表
 
             # 初始化订单运行时间数据
@@ -183,6 +187,7 @@ class Simulation:
                            'num': i,  # 订单序号
                            'work_schedule': work_schedule,
                            'time': Time(time_input)}
+            # print(f'订单编号：{i}')
             self.order_notstart.append(Order(order_input))
         # print('所有Order数量为：%d ' % self.num_order)
 
@@ -192,67 +197,13 @@ class Simulation:
             if (len(order.work_schedule) == 3):
                 simple_num = simple_num + 1
         # print('simple_num=%d'%simple_num,',比例为:%.3f'%(simple_num/self.num_order))
+        # print('%d'%self.num_order,'%.3f'%(simple_num/self.num_order))
 
-    # 筛选出不被拥堵影响的订单
-    def Func_Order_Filter(self):
-        order_fluent = []  # 筛选在mainstream上可以不堵的订单
-        order_can = []  # 进而筛选在section中排队次数小于6次的订单
-        for order in self.order_notstart:
-            # work_step[i][j]：[i]对应第i步；[j=0]对应section名，[j=1]对应工序用时
-            work_step = order.work_schedule
-
-            if (int(work_step[0][0]) >= 0):  # 如果第0步不为mainstream，则不堵
-                order_fluent.append(order)
-            else:
-                if (len(self.section_list[int(work_step[0][0])].waiting_order_list) + len(self.section_list[int(
-                        work_step[0][0])].finish_order_list) == 0):  # 如果第0步为mainstream，并且第0步等待数量为0，
-                    if (int(work_step[1][0]) >= 0):  # 如果第1步不为mainstream，则不堵
-                        order_fluent.append(order)
-                    else:  # 如果第1步为mainstream，则继续判断第1步等待数量
-                        if (len(self.section_list[int(work_step[1][0])].waiting_order_list) + len(self.section_list[int(
-                                work_step[1][0])].finish_order_list) == 0):  # 如果第1步等待数量为0，则不堵，否则堵
-                            order_fluent.append(order)
-        # print('order_fluent%d:'%len(order_fluent), end='')
-        # display_order_list_simple(order_fluent)
-
-        for order_2 in order_fluent:
-            work_step = order_2.work_schedule
-            for i in range(len(work_step)):
-                if (int(work_step[i][0]) < 0):  # 如果第i步为mainstream，跳过这一步判断下一步是否还为mainstream
-                    continue
-                else:
-                    all_order_num = len(self.section_list[int(work_step[i][0])].waiting_order_list) + len(
-                        self.section_list[int(work_step[i][0])].process_order_list) + len(
-                        self.section_list[int(work_step[i][0])].finish_order_list)
-                    if (all_order_num < 6):  # 找到第一步不是mainstream的判断，如果第i步的等待数量小于6，则可以被派发
-                        order_can.append(order_2)
-                        break
-                    else:
-                        break
-        # # 测试数据
-        # print('order_can:', end='')
-        # display_order_list_simple(order_can)
-        return order_can, order_fluent
 
     # 订单派发算法
-    def Func_Assign_Order(self, time):
-        # 1\过滤有堵塞问题的订单
-        order_can, order_fluent = self.Func_Order_Filter()
-        # print(f'weight:{self.weight}')
-
-        # 2\按照cost选出影响最小的订单,赋予order_now
-        if (len(order_can) > 0):
-            # print(f'weight:{self.weight}')
-            order_now = Func_Cost_sequence(order_can, self.section_list, self.order_notstart, self.order_before_section,
-                                           self.weight)
-        else:
-            if (len(order_fluent) != 0):
-                pass
-                # print("section已满，本轮无订单被派发")
-            else:
-                pass
-                # print("主干道堵塞，本轮无订单被派发")
-            return 0
+    def Func_Assign_Order_Tools(self, order_now,time):
+        # print(f'当前派发的订单为:order_{order_now.num}')
+        # print(order_now)
 
         # 3\赋予section_now为order_now第一个不为负的section，得到第一个不为负section的编号和当前order所处的工序
         order_now.now_section_num, order_now.now_schedule_num = Find_Section_now_num(order_now)
@@ -274,53 +225,38 @@ class Simulation:
                 self.order_notstart.pop(i)
                 break
 
-    # 发网原始算法
-    def Func_Assign_Order_Origin(self, time):
-        # 1\过滤可能有堵塞问题的订单
-        order_can, order_fluent = self.Func_Order_Filter()
-        # 2\按照cost选出影响最小的订单,赋予order_now
-        key = 0
-        if (len(order_can) > 0):
-            # 求出只有一个section要去的，并且该section的waiting+process为空的订单
-            for order in order_can:
-                if (len(order.work_schedule) == 3):
-                    section_now_num, schedule_now_num = Find_Section_now_num(order)
-                    section_temp = self.section_list[section_now_num]
-                    section_waiting_num = len(section_temp.waiting_order_list) + len(
-                        section_temp.process_order_list) + len(section_temp.finish_order_list)
-                    if (section_waiting_num == 0):
-                        order_now = order
-                        key = 1
-                        break
-            if (key == 0):
-                order_now = order_can[0]
 
-        else:
-            if (len(order_fluent) != 0):
-                # print("section已满，本轮无订单被派发")
-                pass
-            else:
-                pass
-                # print("主干道堵塞，本轮无订单被派发")
-            return 0
-
-        # 3\赋予section_now为order_now第一个不为负的section，得到第一个不为负section的编号和当前order所处的工序
-        order_now.now_section_num, order_now.now_schedule_num = Find_Section_now_num(order_now)
-        # print('当前派发的订单为%s'%order_now.name,',地点为%s'%self.section_list[order_now.now_section_num].name,"对应工序序号为%d"%order_now.now_schedule_num,'工序为:%s'%order_now.work_schedule)
-
-        # 4\在section等待队列中加入订单信息(订单序号，订单在该区用时)
-        self.section_list[order_now.now_section_num].Add_to_waiting_order_list(order_now, time)
-
-        # 5\修改订单信息
-        # time_enter_section记录
-        order_now.time.time_enter_section = time
-
-        # 6\在未发出订单信息中删除order_now
-        for i in range(len(self.order_notstart)):
-            if (self.order_notstart[i].name == order_now.name):
-                self.order_start.append(self.order_notstart[i])
-                self.order_notstart.pop(i)
+    # 配合GA的订单派发算法
+    def Order_Select_OriginGA(self, time, order_num):
+        order_now = None
+        for i in range(0, len(self.order_notstart)):
+            if self.order_notstart[i].num == order_num:
+                order_now = self.order_notstart[i]
                 break
+            else:
+                continue
+        order_now = Check_jam(order_now, self.section_list)
+        if order_now == 'error':
+            # print('error')
+            return 0
+        else:
+            self.Func_Assign_Order_Tools(order_now,time)
+            return 1
+
+
+    def Order_Select_Rules(self, time):
+        order_now = None
+        order = Func_Cost_sequence_simple(self.order_notstart, self.section_list,
+                                          self.order_before_section, self.weight)
+        order_now = Check_jam(order, self.section_list)
+
+        if order_now == 'error':
+            # print('error')
+            return 0
+        else:
+            self.Func_Assign_Order_Tools(order_now,time)
+            return 1
+
 
     # 移动到下一个分区
     def Func_Move_To_Next_Schedule(self, order_now, section_list, time):
@@ -348,21 +284,29 @@ class Simulation:
 
     # 仿真主函数
     def run(self):
+        order_count_GA = 0
         for t in range(1, self.T):
             # print("\n")
             # print(
             #     "--------------------------\n     当前时刻为%d\n--------------------------" %
             #     t)
-
             # step1：下发新的订单
+            # print(len(self.order_notstart))
             if ((t + 1) % self.pace == 0):
                 # print('pace is OK')
                 if (len(self.order_notstart) != 0):
-                    if (self.type == 'origin'):
-                        # print('origin')
-                        self.Func_Assign_Order_Origin(time=t)
-                    else:
-                        self.Func_Assign_Order(time=t)
+                    if (self.type == 'GA_origin'):
+                        # print(f'接下来该派发第{order_count_GA}个订单：order_{self.order_list_GA[order_count_GA]}')
+                        # print(f'接下来该派发第{self.order_list_GA[order_count_GA]}个订单')
+                        flag = self.Order_Select_OriginGA(time=t, order_num=self.order_list_GA[order_count_GA])
+                        if flag == 1:
+                            order_count_GA = order_count_GA + 1
+
+                    elif (self.type == 'rules_simple'):
+                        # print(f'接下来该派发第{order_count_GA}个订单：order_{self.order_list_GA[order_count_GA]}')
+                        # print(f'接下来该派发第{self.order_list_GA[order_count_GA]}个订单')
+                        self.Order_Select_Rules(time=t)
+
                 else:
                     # print('*********无order可派发*********\n')
                     pass
@@ -412,12 +356,13 @@ class Simulation:
                 self.data_analysis.main_jam_2 = self.data_analysis.main_jam_2 + 1  # 主路的拥堵情况
 
             # 记录各工位工作情况
-            busy_scene=[0,0,0,0,0,0]
+            busy_scene = [0, 0, 0, 0, 0, 0]
             for i in range(0, 6):
                 if ((len(self.section_list[i].process_order_list) + len(self.section_list[i].waiting_order_list)) > 0):
                     self.busy_section[i] = self.busy_section[i] + 1
-                    busy_scene[i]=len(self.section_list[i].process_order_list) + len(self.section_list[i].waiting_order_list)
-            self.busy_variance_sum=self.busy_variance_sum+np.var(busy_scene)
+                    busy_scene[i] = len(self.section_list[i].process_order_list) + len(
+                        self.section_list[i].waiting_order_list)
+            self.busy_variance_sum = self.busy_variance_sum + np.var(busy_scene)
             # print(self.busy_section)
 
             # 订单全部完成，退出循环
@@ -426,47 +371,77 @@ class Simulation:
                 break
 
         # 展示数据（总结）
-        if(self.op_method=='surrogate'):
+        if ((self.op_method == 'surrogate') and (self.type == 'new')) or (
+                (self.op_method == 'surrogate') and (self.type == 'rules_simple')):
             # print('[Order：%d ' % self.num_order,'Sku：%d]' % self.num_sku,',type:%s'%self.type,',pace:%d'%self.pace,'\nsku_time信息:%s'%self.sku_time_num)
             print('完成全部订单共计循环次数：%d' % T_last)
-            print('主路-1拥堵情况：%d' % self.data_analysis.main_jam_1, '主路-2拥堵情况：%d' % self.data_analysis.main_jam_2)
+            print('主路-1拥堵情况：%d' % self.data_analysis.main_jam_1,
+                  '主路-2拥堵情况：%d' % self.data_analysis.main_jam_2)
             # # 计算忙碌的方差：
-            print(f'各section忙碌情况的方差为：{np.var(self.busy_section)},平均值为：{np.mean(self.busy_section)},busy_section:{self.busy_section}')
+            print(
+                f'各section忙碌情况的方差为：{np.var(self.busy_section)},平均值为：{np.mean(self.busy_section)},busy_section:{self.busy_section}')
             print(f'工时方差为：{self.busy_variance_sum}')
+
+        order_start_list = []
+        for order in self.order_start:
+            order_start_list.append(order.num)
 
         self.data_analysis.xls_output(self.order_start, self.type)
 
-        results={
-                    'T_last': T_last,
-                    'jam_1':self.data_analysis.main_jam_1,
-                    'jam_2':self.data_analysis.main_jam_2,
-                    'busy_variance':self.busy_variance_sum,
+        results = {
+            'T_last': T_last,
+            'jam_1': self.data_analysis.main_jam_1,
+            'jam_2': self.data_analysis.main_jam_2,
+            'busy_variance': self.busy_variance_sum,
+            'order_start_list':order_start_list
         }
         return results
 
+
 if __name__ == "__main__":
     start = tm.perf_counter()  # 记录当前时刻
-    # cwd = os.getcwd()  # 读取当前文件夹路径
+    import os
+    import warnings
+    warnings.filterwarnings('ignore')
 
-    # surrogate_weight=[1,0,0]
-    # surrogate_weight = [0.81708383,0.64884249,0.27365036]
-    surrogate_weight = [1,0.76399,0.43427]
-    # surrogate_weight=[1,0.7,0.5]
+    cwd = os.getcwd()  # 读取当前文件夹路径
 
-    from simulation_config import simulation_config
-    simulation_config['weight'] = surrogate_weight
+    weight_list =[
+        # [1, 0, 0],
+        # [0.77014, 0.528, 0],
+        # [0.85372829, 0.15209866, 0.32540894],
+        # [0.31435, 1, 0],
+        # [0.44949341, 0, 0.16668701],
+        # [0.98549, 0.45966, 0.00031],
+        [0.44949341, 0.09561157, 0.16668701],
+        [0.28571, 0.71429, 0],
+        [0.44949341,0,0.16668701],
+        [1, 0.7, 0.5],
+    ]
 
-    simulation_1 = Simulation(simulation_config)  # 初始化仿真实例
-    results = simulation_1.run()  # 运行仿真
-    T_last=results['T_last']
-    jam_1=results['jam_1']
-    jam_2=results['jam_2']
-    busy_variance=results['busy_variance']
+    for surrogate_weight in weight_list:
+        print(f"\nweight:{surrogate_weight}")
+        for i in range(0, 20):
+            # surrogate_weight = [0.31435,1,0]
 
+            from simulation_config import simulation_config
+            simulation_config['weight'] = surrogate_weight
 
-    print(results)
-    print(T_last,jam_1,jam_2,busy_variance)
-    # simulation_1.data_analysis.plot_results_plotly() #绘图
+            string_name = cwd + '/Fa_data/random_data_orders_4000/OrderPickDetail_random_' + str(i) + '.xlsx'
+            simulation_config['path_order_sku_map'] = string_name
+
+            simulation_1 = Simulation(simulation_config)  # 初始化仿真实例
+
+            results = simulation_1.run()  # 运行仿真
+            T_last = results['T_last']
+            jam_1 = results['jam_1']
+            jam_2 = results['jam_2']
+            busy_variance = results['busy_variance']
+            sum_result = T_last / 6.944 + (jam_1 + jam_2) / 0.88 + busy_variance / 22.728
+
+            # print(f"订单派发列表:{results['order_start_list']}")
+            print(T_last, jam_1, jam_2, jam_1 + jam_2, busy_variance, sum_result)
+            # simulation_1.data_analysis.plot_results_plotly() #绘图
 
     end = tm.perf_counter()
     print("程序共计用时 : %s Seconds " % (end - start))

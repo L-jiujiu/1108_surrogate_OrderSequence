@@ -201,6 +201,26 @@ class Data_Analysis:
         )
         return section_all
 
+    def plot_order_notstart_plotly(self,order_notstart,order_start):
+        # 用plotly画图
+        fig = make_subplots(
+            rows=2, cols=1,
+            subplot_titles=("<b>order_notstart</b>",
+                            "<b>order_start</b>",
+                            )
+        )
+        fig.add_trace(self.plot_scatter(order_notstart, '<b>not_start</b>', key='all'), row=1, col=1)
+        fig.add_trace(self.plot_scatter(order_start, '<b>start</b>', key='all'), row=2, col=1)
+
+        layout = go.Layout(title='各时刻系统内订单数',  # 定义生成的plot 的标题
+                           xaxis8={'title': '时刻'},  # 定义x坐标名称
+
+                           yaxis1={'title': '未出发订单数',},
+                           yaxis2={'title': '已出发订单数',},
+                           )
+        fig.update_layout(layout)
+        of.plot(fig, filename='Simulation_Result.html')
+
     # plotly画多组折线图
     def plot_results_plotly(self):
         # 用plotly画图
@@ -224,7 +244,6 @@ class Data_Analysis:
             elif(i==-2):
                 fig.add_trace(self.plot_scatter(self.y_22, '主路<b>%d</b>' % i,key='all'), row = 8, col = 1)
             else:
-
                 exec("fig.add_trace(self.plot_scatter(self.y_{},'<b>%d</b> '%{},key='all'),row=i+1,col=1)".format(i,fig_name[i]))
                 # exec("fig.add_trace(self.plot_scatter(self.y_{}_waiting, 'section_<b>%d</b> waiting' % {},key='waiting'), row=i + 1, col=1)".format(i,i))
                 # exec("fig.add_trace(self.plot_scatter(self.y_{}_process, 'section_<b>%d</b> process' % {},key='process'), row=i + 1, col=1)".format(i,i))
