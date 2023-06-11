@@ -4,7 +4,7 @@ import numpy as np
 from simulation_config import simulation_config
 from surrogate_main import example_sop
 from GA_main import example_GA
-from GA_origin_main import example_GA_origin
+from Static_GA_main import example_GA_origin
 import warnings
 
 if __name__ == "__main__":

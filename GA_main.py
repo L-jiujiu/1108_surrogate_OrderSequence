@@ -61,6 +61,8 @@ def example_GA(simulation_config):
     solution_list = []
 
     seed_list = range(0, simulation_config['seed_num'])
+
+    test_solution = Simulation(simulation_config)
     for seed in seed_list:
         problem = GaSolver(simulation_config)
         # 构建算法：增强精英保留的遗传算法模板
@@ -87,7 +89,7 @@ def example_GA(simulation_config):
                           )
 
         # 评估最优解并输出图像
-        test_solution = Simulation(simulation_config)
+        # test_solution = Simulation(simulation_config)
 
         results = test_solution.run()  # 运行仿真
         solution_list.append(res['Vars'][0])

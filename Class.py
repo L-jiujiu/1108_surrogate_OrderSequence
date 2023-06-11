@@ -177,18 +177,29 @@ class Data_Analysis:
         self.main_jam_2 = 0  # 主路的拥堵情况
 
     # 存数据
-    def save_y_t(self,time,section_list,plot):
+    def save_y_t(self,time,plot,busyness_array,waiting_array,process_array):
         plot.x_t.append(time)
-        for i in range(len(section_list)):
-            a = section_list[i].Count_num()
-            if (section_list[i].num == -1):
-                plot.y_11.append(a)
-            elif (section_list[i].num == -2):
-                plot.y_22.append(a)
-            else:
-                exec("plot.y_{}.append(a)".format(i))
-                exec("plot.y_{}_waiting.append(len(section_list[i].waiting_order_list))".format(i))
-                exec("plot.y_{}_process.append(len(section_list[i].process_order_list))".format(i))
+        plot.y_11.append(busyness_array[(6,0)])
+        plot.y_22.append(busyness_array[(7,0)])
+        for i in range(0,6):
+            exec("plot.y_{}.append(busyness_array[(i,0)])".format(i))
+            exec("plot.y_{}_waiting.append(waiting_array[(i,0)])".format(i))
+            exec("plot.y_{}_process.append(process_array[(i,0)])".format(i))
+
+        # for i in range(len(section_list)):
+        #     a = section_list[i].Count_num()
+        #     if (section_list[i].num == -1):
+        #         plot.y_11.append(a)
+        #     elif (section_list[i].num == -2):
+        #         plot.y_22.append(a)
+        #     else:
+        #         exec("plot.y_{}.append(a)".format(i))
+        #         exec("plot.y_{}_waiting.append(len(section_list[i].waiting_order_list))".format(i))
+        #         exec("plot.y_{}_process.append(len(section_list[i].process_order_list))".format(i))
+        # print('画图')
+        # print(plot.y_0)
+        # print(plot.y_0_waiting)
+        # print(plot.y_0_process)
 
     # plotly画折线图
     def plot_scatter(self,y,title,key):
