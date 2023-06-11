@@ -5,6 +5,7 @@
 """
 
 import operator
+import numpy as np
 from Class import CostList
 
 # 找出订单工序表中第一个分区（非主路）
@@ -172,47 +173,50 @@ def Func_Cost_sequence_simple_origin(
 
     return order_return
 
-def Func_Cost_sequence_simple(
-        order_can,
-        section_list,
-        order_before_section,
-        weight):
 
-    cost = []
-    order_return = None
-    # print(f'weight:{weight}')
-    for i in range(len(order_can)):
-        order_can[i].Cost_cal(section_list=section_list,weight=weight)
-        cost_input = {
-            'name': order_can[i].name,  # order名
-            'order': 0,  # 即将进行的订单序号
-            'cost': order_can[i].weighted_cost,  # cost
-            'orderfororder': i,  # 原本的序号
-        }
-        cost.append(CostList(cost_input))
-    # 对成本以cost为键排序
-    sortkey = operator.attrgetter('cost')
-    cost.sort(key=sortkey)
-    min_val=cost[0].cost
-    # print(min_val)
-    min_cost_list=[]
 
-    for i in range(len(cost)):
-        if cost[i].cost == min_val:
-            min_cost_list.append(cost[i])
-    # print(min_cost_list)
 
-    flag=0
-    if len(min_cost_list) > 1:
-        for i in min_cost_list:
-            section_now_num, schedule_now_num = Find_Section_now_num(order_can[i.orderfororder])
-            if section_now_num!=order_before_section:
-                flag=1
-                return order_can[i.orderfororder]
-
-    if (len(min_cost_list) ==1) or (flag==0):
-        order_return = order_can[min_cost_list[0].orderfororder]
-        return order_return
+# def Func_Cost_sequence_simple(
+#         order_can,
+#         section_list,
+#         order_before_section,
+#         weight):
+#
+#     cost = []
+#     order_return = None
+#     # print(f'weight:{weight}')
+#     for i in range(len(order_can)):
+#         order_can[i].Cost_cal(section_list=section_list,weight=weight)
+#         cost_input = {
+#             'name': order_can[i].name,  # order名
+#             'order': 0,  # 即将进行的订单序号
+#             'cost': order_can[i].weighted_cost,  # cost
+#             'orderfororder': i,  # 原本的序号
+#         }
+#         cost.append(CostList(cost_input))
+#     # 对成本以cost为键排序
+#     sortkey = operator.attrgetter('cost')
+#     cost.sort(key=sortkey)
+#     min_val=cost[0].cost
+#     # print(min_val)
+#     min_cost_list=[]
+#
+#     for i in range(len(cost)):
+#         if cost[i].cost == min_val:
+#             min_cost_list.append(cost[i])
+#     # print(min_cost_list)
+#
+#     flag=0
+#     if len(min_cost_list) > 1:
+#         for i in min_cost_list:
+#             section_now_num, schedule_now_num = Find_Section_now_num(order_can[i.orderfororder])
+#             if section_now_num!=order_before_section:
+#                 flag=1
+#                 return order_can[i.orderfororder]
+#
+#     if (len(min_cost_list) ==1) or (flag==0):
+#         order_return = order_can[min_cost_list[0].orderfororder]
+#         return order_return
 
 def Check_jam(order_return,section_list):
     # work_step[i][j]：[i]对应第i步；[j=0]对应section名，[j=1]对应工序用时
@@ -242,6 +246,8 @@ def Check_jam(order_return,section_list):
                                 section_list[int(work_step[2][0])].finish_order_list)
                         if (all_order_num < 6):  # 找到第一步不是mainstream的判断，如果第i步的等待数量小于6，则可以被派发
                             order_now = order_return
+    else:
+        print('NONE')
     return order_now
 
 def display_order_list_simple(order_list):

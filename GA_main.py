@@ -23,6 +23,7 @@ class GaSolver(ea.Problem):
         # 调用父类构造方法完成实例化
         ea.Problem.__init__(self, name, M, maxormins, Dim, varTypes, lb, ub, lbin, ubin)
 
+
     def evalVars(self, Vars):
         # 评估目标函数
         total_cost_array = np.zeros(Vars.shape[0])

@@ -51,6 +51,7 @@ class Section:
             if(len(self.waiting_order_list) == 0):  # waiting中无：return 0
                 return 0
             else:  # waiting中有：waiting[0]加入到process中，order_now=process[0]
+                # print(f'section{self.name}len{len(self.waiting_order_list)}')
                 self.process_order_list.append(self.waiting_order_list[0])
                 self.waiting_order_list.pop(0)
                 self.process_order_list[0].time.time_start_process = time
@@ -91,6 +92,7 @@ class Order:
 
         self.time = order_config['time']  # 订单处理实时进度
         self.weighted_cost = 0  #订单cost
+        # self.duedate=order_config['duedate']
 
 
     # 函数
@@ -107,13 +109,16 @@ class Order:
                 continue
             else:
                 # cost = 1 *（sec0等待队列 + order在sec0处理时间）+0.8 *（sec1等待队列 + order在sec1处理时间）+0.5 *（sec2等待队列 + order在sec2处理时间）
-                try:
-                    section_waiting_num = len(section_list[int(self.work_schedule[i][0])].waiting_order_list) + len(section_list[int(
-                        self.work_schedule[i][0])].process_order_list) + len(section_list[int(self.work_schedule[i][0])].finish_order_list)
-                    cost = cost + \
-                        weight[j] * (int(self.work_schedule[i][1]) + section_waiting_num)
-                except BaseException:
-                    break
+                # try会慢
+                #try:
+                section_waiting_num = \
+                    len(section_list[int(self.work_schedule[i][0])].waiting_order_list) \
+                    + len(section_list[int(self.work_schedule[i][0])].process_order_list) \
+                    + len(section_list[int(self.work_schedule[i][0])].finish_order_list)
+                cost = cost + \
+                    weight[j] * (int(self.work_schedule[i][1]) + section_waiting_num)
+                #except BaseException:
+                 #   break
                 j = j + 1
 
         self.weighted_cost = cost

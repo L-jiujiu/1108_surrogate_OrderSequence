@@ -19,6 +19,7 @@ if __name__ == "__main__":
 
         print(f"\n当前派单方式为:{simulation_config['type_order']},\n当前优化目标为{simulation_config['type']},最优解:{best_solution}")
 
+
     elif simulation_config['type_order'] == 'rules_simple':
         print(f"\n当前派单方式为:{simulation_config['type_order']},\n优化方法为:{simulation_config['optimization_method']},当前优化目标为{simulation_config['type']}")
 
