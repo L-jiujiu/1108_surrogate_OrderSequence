@@ -9,7 +9,7 @@ from simulation_config import simulation_config
 class GaSolver(ea.Problem):
 
     def __init__(self, simulation_config):
-        self.problem_instance = Simulation(simulation_config)
+        # self.problem_instance = Simulation(simulation_config)
         self.iteration_counter = 0
         name = 'GA_Simulation'
         M = 1  # 目标维数
@@ -27,11 +27,12 @@ class GaSolver(ea.Problem):
     def evalVars(self, Vars):
         # 评估目标函数
         total_cost_array = np.zeros(Vars.shape[0])
+
+        simulation_1=Simulation(simulation_config)
         for i in range(Vars.shape[0]):
             print(Vars[i, :])
-            simulation_config['weight'] = Vars[i, :]
-            simulation_1 = Simulation(simulation_config)  # 初始化仿真实例
-            results = simulation_1.run()  # 运行仿真
+            simulation_1.recycle_initial()  # 第二次仿真需要重启部分设置
+            results = simulation_1.run(rule=Vars[i, :])  # 运行仿真
             T_last = results['T_last']
             jam_1 = results['jam_1']
             jam_2 = results['jam_2']
@@ -89,9 +90,8 @@ def example_GA(simulation_config):
                           )
 
         # 评估最优解并输出图像
-        # test_solution = Simulation(simulation_config)
-
-        results = test_solution.run()  # 运行仿真
+        test_solution = Simulation(simulation_config)
+        results = test_solution.run(rule=res['Vars'][0])  # 运行仿真
         solution_list.append(res['Vars'][0])
         object_value_list.append(results['T_last'])
 

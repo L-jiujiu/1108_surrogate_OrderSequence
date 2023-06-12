@@ -42,14 +42,14 @@ simulation_config = {
     'optimization_method': 'GA',
 
     # 优化目标
-    'type': 'min_timespan',  # min_timespan是减少总用时，min_jam_sum是减少拥堵次数,min_variance是减少各工站的繁忙程度
+    # 'type': 'min_timespan',  # min_timespan是减少总用时，min_jam_sum是减少拥堵次数,min_variance是减少各工站的繁忙程度
     # 'type': 'min_sum',
-    # 'type': 'min_variance',
+    'type': 'min_variance',
     # 'type': 'min_all',
 
     # + GA参数设置
     'seed_num': 1,  # 随机种子数量
-    'MaxGen': 1,  # 最大进化次数
+    'MaxGen': 100,  # 最大进化次数
     'MaxTime': 100000,  # 最长运行时间
     'NIND': 10,  # 初始种群数量，建议>=10
 

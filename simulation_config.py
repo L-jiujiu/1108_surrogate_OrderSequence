@@ -46,12 +46,13 @@ simulation_config = {
     'num_threads': 1,  # 线程数
     'max_evals': 2,  # 迭代次数
 
-    # + GA参数设置
+    # + GA优化rules的参数设置
     'seed_num': 1,  # 随机种子数量
-    'MaxGen': 1,  # 最大进化次数
-    'MaxTime': 100000,  # 最长运行时间
-    'NIND': 1,  # 初始种群数量，建议>=10
+    'MaxGen': 100,  # 最大进化次数
+    'MaxTime': 100000000,  # 最长运行时间
+    'NIND': 10,  # 初始种群数量，建议>=10
 
     # 'test_version': 1,  # 1为显示print内容
     'test_version': 0,  # 1为显示print内容
+    'order_list_GA':[]
 }

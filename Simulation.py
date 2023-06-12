@@ -464,6 +464,12 @@ class Simulation:
         if self.type == 'dynamic':
             self.order_array_weight_all = self.rule_process_weight(weight=rule)
 
+        # for order in self.order_notstart:
+        #     if(order.num== 5547) or (order.num== 4282) or (order.num== 4955):
+        #         print(order.num)
+        #         print(order.name)
+        #         print(order.work_schedule)
+
         # 开始时序仿真
         for t in range(1, self.T):
             # print("\n")
@@ -559,7 +565,7 @@ class Simulation:
             'busy_variance': self.busy_variance_sum,
             'order_start_list': self.order_start_num
         }
-        print(results)
+        # print(results)
 
         return results
 
@@ -574,8 +580,9 @@ if __name__ == "__main__":
     cwd = os.getcwd()  # 读取当前文件夹路径
 
     weight_list = [
-        # [1, 0.5, 0.3],
+        [1, 0.5, 0.3],
         [1, 0, 0],
+        [1,0.8,0.5],
     ]
     from simulation_config import simulation_config
 
