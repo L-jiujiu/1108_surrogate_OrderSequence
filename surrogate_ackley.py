@@ -41,7 +41,7 @@ class Ackley(OptimizationProblem):
         :rtype: float
         """
         self.__check_input__(x)
-        from simulation_config import simulation_config
+        from Dynamic_simulation_config import simulation_config
 
         surrogate_weight = x
         print(f'\nx:{x}')

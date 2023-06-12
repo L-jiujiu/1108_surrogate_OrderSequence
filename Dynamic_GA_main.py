@@ -3,7 +3,7 @@ import geatpy as ea
 import numpy as np
 
 from Simulation import Simulation
-from simulation_config import simulation_config
+from Dynamic_simulation_config import simulation_config
 
 
 class GaSolver(ea.Problem):
@@ -16,7 +16,7 @@ class GaSolver(ea.Problem):
         maxormins = [1]  # 目标最小最大化标记列表，1：最小化该目标；-1：最大化该目标
         Dim = 3  # 决策变量维数 a,b,c共3个参数
         varTypes = [0] * Dim  # 决策变量的类型列表，0：实数；1：整数
-        lb = [0] * Dim  # 决策变量下界
+        lb = [-1] * Dim  # 决策变量下界
         ub = [1] * Dim  # 决策变量上界
         lbin = [1] * Dim  # 决策变量下边界（0表示不包含该变量的下边界，1表示包含）
         ubin = [1] * Dim  # 决策变量上边界（0表示不包含该变量的上边界，1表示包含）
@@ -109,7 +109,7 @@ if __name__ == '__main__':
     best_solution=solution_list[min]
 
     print('当前min的目标是:',simulation_config['type'])
-    print(f'最优解为:{best_solution},目标值为:{best_object}')
+    print(f'最优解为:{list(best_solution)},目标值为:{best_object}')
 
     end = tm.perf_counter()
     print("程序共计用时 : %s Seconds " % (end - start))

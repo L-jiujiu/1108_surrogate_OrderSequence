@@ -13,7 +13,7 @@ from surrogate_ackley import Ackley
 from pySOT.strategy import SOPStrategy
 from pySOT.surrogate import CubicKernel, LinearTail, RBFInterpolant
 import time as tm
-from simulation_config import simulation_config
+from Dynamic_simulation_config import simulation_config
 
 
 def example_sop(sop_config):

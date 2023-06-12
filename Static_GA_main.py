@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from Simulation import Simulation
-from simulation_config_static import simulation_config
+from Static_simulation_config import simulation_config
 
 # 静态 遗传算法直接排序
 class GaSolver(ea.Problem):

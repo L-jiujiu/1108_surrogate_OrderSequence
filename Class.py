@@ -35,7 +35,6 @@ class Section:
         self.waiting_order_list.append(order_now)
         order_now.now_section_num = self.num
         order_now.time.time_enter_section = time
-
     def Add_to_finish_order_list(self, order_now):
         # 在section完成订单队列中加入订单
         self.finish_order_list.append(order_now)
@@ -45,7 +44,18 @@ class Section:
             len(self.process_order_list) + len(self.finish_order_list)
         return a
 
-    def Process_order(self, time):
+    def Count_time_section(self,order_array):
+        time_wait=0
+        time_process_left=0
+        for order in self.waiting_order_list:
+            time_wait=time_wait+order_array[(order.num,self.num)]
+        if(len(self.process_order_list) != 0):  # process中无：判断waiting中是否有order
+            order_now = self.process_order_list[0]
+            time_process_left=time_process_left+\
+                              order_now.work_schedule[order_now.now_schedule_num][1]
+        return time_wait,time_process_left,time_wait+time_process_left
+
+    def Process_order(self, time,order_insystem_array):
         # 完成waiting或process中的order：
         if(len(self.process_order_list) == 0):  # process中无：判断waiting中是否有order
             if(len(self.waiting_order_list) == 0):  # waiting中无：return 0
@@ -65,7 +75,7 @@ class Section:
                 #     '等待用时%d' %
                 #     self.process_order_list[0].time.period_waiting)
         order_now = self.process_order_list[0]
-
+        order_insystem_array[(order_now.num,self.num)]=0 # 不是系统即将需要处理的订单，当前section任务归0
         # print('工作前%s'%order_now.work_schedule[order_now.now_schedule_num])
         a = int(order_now.work_schedule[order_now.now_schedule_num][1] - 1)
         order_now.work_schedule[order_now.now_schedule_num] = (

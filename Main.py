@@ -1,7 +1,7 @@
 import time as tm
 import numpy as np
 
-from simulation_config import simulation_config
+from Dynamic_simulation_config import simulation_config
 from surrogate_main import example_sop
 from Dynamic_GA_main import example_GA
 from Static_GA_main import example_GA_origin
