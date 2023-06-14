@@ -7,7 +7,7 @@ simulation_config = {
     # 'T': 5,  # 仿真时长
     'num_section': 6,  # 分区个数
     'num_section_main': 2,  # 主路节点个数
-
+    'step': 1,
 
     'pace':1,  # 订单派发节奏
 
@@ -41,16 +41,15 @@ simulation_config = {
     'optimization_method': 'GA',
 
     # 优化目标
-    # 'type': 'min_timespan',  # min_timespan是减少总用时，min_jam_sum是减少拥堵次数,min_variance是减少各工站的繁忙程度
-    # 'type': 'min_sum',
-    'type': 'min_variance',
+    'type': 'min_timespan',  # min_timespan是减少总用时，min_jam_sum是减少拥堵次数,min_variance是减少各工站的繁忙程度
+    # 'type': 'min_variance',
     # 'type': 'min_all',
 
     # + GA参数设置
     'seed_num': 1,  # 随机种子数量
     'MaxGen': 100,  # 最大进化次数
     'MaxTime': 100000,  # 最长运行时间
-    'NIND': 5,  # 初始种群数量，建议>=10
+    'NIND': 8,  # 初始种群数量，建议>=10
 
     # 'test_version': 1,  # 1为显示print内容
     'test_version': 0,  # 1为显示print内容

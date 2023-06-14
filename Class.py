@@ -55,7 +55,7 @@ class Section:
                               order_now.work_schedule[order_now.now_schedule_num][1]
         return time_wait,time_process_left,time_wait+time_process_left
 
-    def Process_order(self, time,order_insystem_array):
+    def Process_order(self, time,order_insystem_array,timestep):
         # 完成waiting或process中的order：
         if(len(self.process_order_list) == 0):  # process中无：判断waiting中是否有order
             if(len(self.waiting_order_list) == 0):  # waiting中无：return 0
@@ -77,13 +77,14 @@ class Section:
         order_now = self.process_order_list[0]
         order_insystem_array[(order_now.num,self.num)]=0 # 不是系统即将需要处理的订单，当前section任务归0
         # print('工作前%s'%order_now.work_schedule[order_now.now_schedule_num])
-        a = int(order_now.work_schedule[order_now.now_schedule_num][1] - 1)
+        a = float(order_now.work_schedule[order_now.now_schedule_num][1] - timestep)
+        # print(a,timestep)
         order_now.work_schedule[order_now.now_schedule_num] = (
             str(self.num), a)
         # print('工作后%s'%order_now.work_schedule[order_now.now_schedule_num])
 
         # 判断该order_now是否已经完成当前工序，完成则将订单移出process，加入finish
-        if(order_now.work_schedule[order_now.now_schedule_num][1] == 0):
+        if(order_now.work_schedule[order_now.now_schedule_num][1] <= 0):
             self.finish_order_list.append(self.process_order_list[0])
             self.process_order_list.pop(0)
             # # 测试数据
@@ -186,8 +187,11 @@ class Data_Analysis:
         self.main_jam_1 = 0  # 主路的拥堵情况
         self.main_jam_2 = 0  # 主路的拥堵情况
 
+        self.order_notstart_num=[]
+        self.num_order=0
+
     # 存数据
-    def save_y_t(self,time,plot,busyness_array,waiting_array,process_array):
+    def save_y_t(self,time,plot,busyness_array,waiting_array,process_array,order_notstart):
         plot.x_t.append(time)
         plot.y_11.append(busyness_array[(6,0)])
         plot.y_22.append(busyness_array[(7,0)])
@@ -195,6 +199,7 @@ class Data_Analysis:
             exec("plot.y_{}.append(busyness_array[(i,0)])".format(i))
             exec("plot.y_{}_waiting.append(waiting_array[(i,0)])".format(i))
             exec("plot.y_{}_process.append(process_array[(i,0)])".format(i))
+        plot.order_notstart_num.append(order_notstart)
 
         # for i in range(len(section_list)):
         #     a = section_list[i].Count_num()
@@ -285,6 +290,45 @@ class Data_Analysis:
                            yaxis6 = {'title': '订单数', 'range': [-1, 6]},
                            yaxis7={'title': '订单数', 'range': [-1, 1]},
                            yaxis8={'title': '订单数', 'range': [-1, 1]},
+                           )
+        fig.update_layout(layout)
+
+        of.plot(fig,filename = 'Simulation_Result.html')
+
+    def plot_results_plotly_nomain(self):
+        # 用plotly画图
+        fig = make_subplots(
+            rows=7, cols=1,
+            subplot_titles=("<b>1701</b>",
+                             "<b>1801</b>",
+                             "<b>1901</b>",
+                             "<b>2001</b>",
+                             "<b>2101</b>",
+                             "<b>2201</b>",
+                             "<b>订单派发情况</b>",
+                             # "<b>主路-2</b>",
+                             )
+        )
+        list_test = [0, 1, 2, 3, 4, 5, -1]
+        fig_name=['1701','1801','1901','2001','2101','2201']
+        for i in list_test:
+            if(i==-1):
+                fig.add_trace(self.plot_scatter(self.order_notstart_num, '<b>订单派发情况</b>',key='waiting'), row = 7, col = 1)
+            else:
+                exec("fig.add_trace(self.plot_scatter(self.y_{},'<b>%d</b> '%{},key='all'),row=i+1,col=1)".format(i,fig_name[i]))
+                # exec("fig.add_trace(self.plot_scatter(self.y_{}_waiting, 'section_<b>%d</b> waiting' % {},key='waiting'), row=i + 1, col=1)".format(i,i))
+                # exec("fig.add_trace(self.plot_scatter(self.y_{}_process, 'section_<b>%d</b> process' % {},key='process'), row=i + 1, col=1)".format(i,i))
+
+        layout = go.Layout(title='各时段分区订单累积情况',  # 定义生成的plot 的标题
+                           xaxis8={'title':'时间'}, # 定义x坐标名称
+
+                           yaxis1= {'title': '订单数', 'range': [-1, 6]},
+                           yaxis2={'title': '订单数', 'range': [-1, 6]},
+                           yaxis3={'title': '订单数', 'range': [-1, 6]},
+                           yaxis4 = {'title': '订单数', 'range': [-1, 6]},
+                           yaxis5 = {'title': '订单数', 'range': [-1, 6]},
+                           yaxis6 = {'title': '订单数', 'range': [-1, 6]},
+                           yaxis7={'title': '订单数', 'range': [0, self.num_order]},
                            )
         fig.update_layout(layout)
 

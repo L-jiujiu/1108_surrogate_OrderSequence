@@ -13,10 +13,12 @@ import os
 from Class import Sku, Section, Order, Time, Data_Analysis
 from Other_Functions import Find_Section_now_num, Check_jam, \
     display_order_list_simple, display_order_list
-
+# import warnings
+# warnings.filterwarnings('ignore')
 class Simulation:
     def __init__(self, simulation_config):
         self.T = simulation_config['T']  # 最高仿真时长
+        self.step=simulation_config['step'] # 时序仿真节奏
         self.path_order_sku_map = simulation_config['path_order_sku_map']  # order-sku图
         self.path_sku_time_map = simulation_config['path_sku_time_map']  # sku-section图
 
@@ -31,9 +33,6 @@ class Simulation:
         # 2、初始化sku
         self.num_sku = 0
         self.sku_list = []
-        # 是否初始化分区/SKU/订单的用时
-        self.new_sku_time = simulation_config['new_sku_time']
-        self.normal_info = simulation_config['normal_info']
         # 3、初始化订单
         self.num_order = 0
         self.order_notstart = []  # 未发出的order
@@ -87,23 +86,7 @@ class Simulation:
         data_count = df.values
         self.num_sku = len(data_count)
         # print('所有Sku数量为：%d ' % self.num_sku)
-        # 是否按正态分布随机生成SKU处理用时
-        if (self.new_sku_time == '1'):
-            # print('正在更新sku时间……')
-            self.data_analysis.init_sku_time(path_sku_time_map=self.path_sku_time_map, num_sku=self.num_sku,
-                                             Mean=self.normal_info[0], StandardDeviation=self.normal_info[1])
-            # print('sku时间已更新')
-            df = pd.read_excel(self.path_sku_time_map, sheet_name='Part 1', usecols='B,C,E')
-            df.dropna(axis=0, how='any', inplace=True)
-        elif (self.new_sku_time == '111'):
-            # print('正在更新sku时间……')
-            self.data_analysis.init_sku_time_1(path_sku_time_map=self.path_sku_time_map, num_sku=self.num_sku)
-            # print('sku时间已全部更新为1')
-            df = pd.read_excel(self.path_sku_time_map, sheet_name='Part 1', usecols='B,C,E')
-            df.dropna(axis=0, how='any', inplace=True)
-        else:
-            pass
-            # print('sku时间未更新')
+
         # 重新读取更新后的SKU Time数据
         data = df.values
         for i in range(0, self.num_sku):
@@ -190,8 +173,19 @@ class Simulation:
             if (len(order.work_schedule) == 3):
                 simple_num = simple_num + 1
         self.simple_rate = simple_num / self.num_order
-        # print(
-        #     f'所有SKU数量为:{self.num_sku},所有Order数量为:{self.num_order},去往一个分区的Order占比:{self.simple_rate}')
+        print(
+            f'所有SKU数量为:{self.num_sku},所有Order数量为:{self.num_order},去往一个分区的Order占比:{self.simple_rate}')
+        # total_workload_array=self.order_array.sum(axis=0)
+        # print(len(self.order_array.sum(axis=0)))
+        # print(self.order_array.sum(axis=0))
+        #
+        # busy_sad=0
+        # for i in range(0,6):
+        #     for j in range(i+1,6):
+        #         busy_sad = busy_sad + abs(total_workload_array[i] - total_workload_array[j])
+        # print(busy_sad)
+
+
 
     def recycle_initial(self):
         # 重复调用仿真时的初始化设置
@@ -211,7 +205,7 @@ class Simulation:
         self.data_analysis = Data_Analysis()
         # print('recycle了')
     def recycle_initial_GA(self,GA):
-        # 重复调用仿真时的初始化设置
+        # 重复调用仿真时的初始化设置,需要更新order顺序表时
         # print(self.order_notstart_origin)
         self.sku_list = copy.deepcopy(self.sku_list_copy)
         self.section_list = copy.deepcopy(self.section_list_copy)
@@ -292,7 +286,7 @@ class Simulation:
         return order_array_weight
 
     # # cost_cal_rule为各个决策规则，返回的是order的排序，也就是order num
-    def cost_cal_rule(self,):
+    def cost_cal_rule(self):
         if self.rule=='N':
             # 决策规则1：多项式 𝒄𝒐𝒔𝒕=𝒂×N_𝟎+𝒃×N_𝟏+𝒄×N_𝟐，多个最小就选第1个，N代表工区缓冲区+工作区订单数量
             cost_all = np.dot(self.order_array_weight_all, self.section_busyness_array)  # 订单次序权重 点乘 工站实时工作状态
@@ -323,10 +317,11 @@ class Simulation:
             return line[0]
         elif self.rule=='Npro+notsamesection':
             # 决策规则1pro+不去上一个订单派去的地方：多项式 𝒄𝒐𝒔𝒕=𝒂×N_𝟎+𝒃×N_𝟏+𝒄×N_𝟐，多个最小就选第1个，N代表工区缓冲区+工作区（当前+即将到达的）订单数量
-            same_section = np.zeros((8, 1))
-            same_section[(self.order_before_section, 0)] = 20  # 20可以被优化
+            same_section_zero = np.zeros((8, 1))
+            self.same_section=same_section_zero
+            self.same_section[(self.order_before_section, 0)] = 20  # 20可以被优化
             if self.order_before_section >= 0:
-                self.section_busyness_array_pro = self.section_busyness_array_pro + same_section
+                self.section_busyness_array_pro = self.section_busyness_array_pro + self.same_section
             # print(self.section_busyness_array_pro)
             cost_all = np.dot(self.order_array_weight_all, self.section_busyness_array_pro)  # 订单次序权重 点乘 工站实时工作状态
             cost = cost_all + self.order_notstart_array  # 将已经完成派发的订单赋极大值
@@ -512,9 +507,6 @@ class Simulation:
         # print(f'waiting  :{np.transpose(self.section_waiting_time_array)}')
         # print(f'======pro:{np.transpose(self.section_busyness_time_array_pro)}\n')
 
-
-
-
         # # [obj1]记录全部工位实时的不平衡性：0-5
         busy_sad = 0
         for i in range(0, 6):
@@ -530,12 +522,13 @@ class Simulation:
 
     # 仿真主函数
     def run(self,rule):
+        # print('111')
         order_count_GA = 0
         if self.type == 'dynamic':
             self.order_array_weight_all = self.rule_process_weight(weight=rule)
         # 用于标记在系统中的订单情况，可以汇总所有工区潜在需要完成的订单数量和时间
         self.order_insystem_array= np.zeros((self.num_order,self.num_section + self.num_section_main))
-
+        self.data_analysis.num_order=self.num_order
         # 用于抽查路径的测试函数
         # list_test=[4821, 3084, 4028, 5470, 4371, 5553,]
         # for order in self.order_notstart:
@@ -545,17 +538,18 @@ class Simulation:
         #         print(order.work_schedule)
 
         # 开始时序仿真
-        for t in range(1, self.T):
+        for t in np.arange(1,self.T,self.step): #range(0, self.T):
+
             # print("\n")
             # print(
             #     "--------------------------\n     当前时刻为%d\n--------------------------" %
             #     t)
-            # 记录当前状态
-            self.func_workload_recorder()
-
+            # print(1)
             # step1：下发新的订单
             # print(len(self.order_notstart))
             if ((t + 1) % self.pace == 0):
+                # 记录当前状态
+                self.func_workload_recorder()
                 # print('pace is OK')
                 if (len(self.order_notstart) != 0):
                     if (self.type == 'static'): # 按照已知顺序下发订单
@@ -575,7 +569,8 @@ class Simulation:
             # step2：储存绘图数据
             self.data_analysis.save_y_t(time=t, plot=self.data_analysis, busyness_array=self.section_busyness_array,
                                         waiting_array=self.section_waiting_array,
-                                        process_array=self.section_process_array
+                                        process_array=self.section_process_array,
+                                        order_notstart=len(self.order_notstart),
                                         )
             # print('各section初始情况：')
             # display_order_list(self.section_list, type='main')
@@ -584,7 +579,7 @@ class Simulation:
             # step3：对每个section进行正序遍历，依次完成当前section中的任务
             #     print('\n*********对各section中订单进行遍历，依次完成*********')
             for i in range(0, 6):
-                self.section_list[i].Process_order(time=t,order_insystem_array=self.order_insystem_array)
+                self.section_list[i].Process_order(time=t,order_insystem_array=self.order_insystem_array,timestep=self.step)
             # print(f'guiling:{self.order_insystem_array}')
 
             # step4：对每个section+mainstream进行倒序遍历，依次对section中finish的订单进行移动
@@ -635,7 +630,8 @@ class Simulation:
             'jam_1': self.data_analysis.main_jam_1,
             'jam_2': self.data_analysis.main_jam_2,
             'busy_variance': self.busy_variance_sum,
-            'order_start_list': self.order_start_num
+            'order_start_list': self.order_start_num,
+            'all':T_last+self.busy_variance_sum/28
         }
         # print(results)
 
@@ -652,9 +648,8 @@ if __name__ == "__main__":
     cwd = os.getcwd()  # 读取当前文件夹路径
 
     weight_list = [
-        # [1, 0.5, 0.3],
         [1, 0, 0],
-        # [1,0.8,0.5],
+        # [0.012984275817871094, 0.015501022338867188, 0.0]
         # [0.52780407, 0, 0.66764715]
     ]
     from Dynamic_simulation_config import simulation_config
@@ -674,9 +669,9 @@ if __name__ == "__main__":
 
         # print(f"订单派发列表:{results['order_start_list']}")
         # print(T_last, jam_1,jam_2,busy_variance)
+        print(results['order_start_list'])
         print(T_last,busy_variance)
 
-        # simulation_1.data_analysis.plot_results_plotly()  # 绘图
-        print(results['order_start_list'])
+        simulation_1.data_analysis.plot_results_plotly_nomain()  # 绘图
     end = tm.perf_counter()
     print("程序共计用时 : %s Seconds " % (end - start))
