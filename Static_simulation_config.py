@@ -3,7 +3,8 @@ import os
 cwd = os.getcwd()  # 读取当前文件夹路径
 
 simulation_config = {
-    'T': 50000000000,  # 仿真时长
+    'T': 2000000,  # 仿真时长
+
     # 'T': 5,  # 仿真时长
     'num_section': 6,  # 分区个数
     'num_section_main': 2,  # 主路节点个数
@@ -12,11 +13,14 @@ simulation_config = {
     'pace':1,  # 订单派发节奏
 
     # 订单数据
-    # 'path_order_sku_map': cwd + '/Fa_data/OrderPickDetail.xlsx',
-    'path_order_sku_map': cwd + '/Fa_data/OrderPickDetail_less.xlsx',
+    'path_order_sku_map': cwd + '/Fa_data/OrderPickDetail.xlsx',
+    # 'path_order_sku_map': cwd + '/Fa_data/OrderPickDetail_less.xlsx',
     # 'path_order_sku_map': cwd + '/Fa_data/random_data_orders_1000/OrderPickDetail_random_0.xlsx',
 
-    'path_sku_time_map': cwd + '/Fa_data/PickLinePos_time.xlsx',
+    # 'path_sku_time_map': cwd + '/Fa_data/PickLinePos_time.xlsx',
+    # 'path_sku_time_map': cwd + '/Fa_data/PickLinePos_timeUni4-8.xlsx',
+    'path_sku_time_map': cwd + '/Fa_data/PickLinePos_timeUni1-5.xlsx',
+
     # 'path_order_sku_map': cwd + '/Fa_data/OrderPickDetail_median.xlsx',
 
     # 是否新建sku_time
@@ -41,15 +45,15 @@ simulation_config = {
     'optimization_method': 'GA',
 
     # 优化目标
-    'type': 'min_timespan',  # min_timespan是减少总用时，min_jam_sum是减少拥堵次数,min_variance是减少各工站的繁忙程度
+    # 'type': 'min_timespan',  # min_timespan是减少总用时，min_jam_sum是减少拥堵次数,min_variance是减少各工站的繁忙程度
     # 'type': 'min_variance',
-    # 'type': 'min_all',
+    'type': 'min_all',
 
     # + GA参数设置
     'seed_num': 1,  # 随机种子数量
     'MaxGen': 100,  # 最大进化次数
     'MaxTime': 100000,  # 最长运行时间
-    'NIND': 8,  # 初始种群数量，建议>=10
+    'NIND': 200,  # 初始种群数量，建议>=10
 
     # 'test_version': 1,  # 1为显示print内容
     'test_version': 0,  # 1为显示print内容

@@ -41,6 +41,9 @@ def init_sku_time_1(path_sku_time_map,num_sku):
 def evaluation(vars,flag):
     cwd = os.getcwd()  # 读取当前文件夹路径
 
+    # path_order_sku_map = cwd + '/Fa_data/backup/OrderPickDetail.xlsx'
+    # path_sku_time_map = cwd + '/Fa_data/backup/PickLinePos_time(235,有null).xlsx'
+
     path_order_sku_map = cwd + '/Fa_data/OrderPickDetail.xlsx'
     path_sku_time_map = cwd + '/Fa_data/PickLinePos_time.xlsx'
 
@@ -99,9 +102,10 @@ def evaluation(vars,flag):
 
     # 创建初始order-section矩阵[行数line:num_order,列数col:num_section[8个],按照012345，-1，-2]
     for index, row in data_order.iterrows():
+        # print(index)
         # 修改订单用时矩阵
-        order_array[row['id'] - 1, int(row['PosGroupID'] / 100 - 17)] = row['Time*Amount']
-        order_array_01[row['id'] - 1, int(row['PosGroupID'] / 100 - 17)] = 1
+        order_array[int(row['id'] - 1), int(row['PosGroupID'] / 100 - 17)] = row['Time*Amount']
+        order_array_01[int(row['id'] - 1), int(row['PosGroupID'] / 100 - 17)] = 1
 
     # np.set_printoptions(threshold=np.sys.maxsize)
     # print(f'order_array 6:{self.order_array}')
@@ -250,8 +254,8 @@ def combine_data():
 if __name__ == "__main__":
     vars=[1]*240 #list(np.ones(235))
     # flag=1：重新赋值，0：取表
-    busy_sad=evaluation(vars,flag=0)
     # test_sku_section_popularity()
     # test_sku_amount_popularity()
     # sku_all_used()
-    # combine_data()
+    combine_data()
+    busy_sad=evaluation(vars,flag=0)

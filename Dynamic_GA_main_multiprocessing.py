@@ -26,39 +26,30 @@ class GaSolver(ea.Problem):
         ea.Problem.__init__(self, name, M, maxormins, Dim, varTypes, lb, ub, lbin, ubin)
         self.simulation_1=Simulation(simulation_config)
 
-    def obj_for_parallel(self,x_id_list,x_list):
+    def obj_for_parallel(self,x_id,x):
         results=[]
-        id=0
-        for x in x_list:
-            # print(Vars[i, :])
-            x_id = x_id_list[id]
-            print(x)
-            # print(x_id)
-            # simulation_1 = Simulation(simulation_config)
-            # simulation_1.recycle_initial()  # 第二次仿真需要重启部分设置
-            # results_sim = simulation_1.run(rule=x)  # 运行仿真
+        print(x)
 
-            # self.simulation_1 = Simulation(simulation_config)
-            self.simulation_1.recycle_initial()  # 第二次仿真需要重启部分设置
-            results_sim = self.simulation_1.run(rule=x)  # 运行仿真
+        # self.simulation_1 = Simulation(simulation_config)
+        self.simulation_1.recycle_initial()  # 第二次仿真需要重启部分设置
+        results_sim = self.simulation_1.run(rule=x)  # 运行仿真
 
-            T_last = results_sim['T_last']
-            busy_variance = results_sim['busy_variance']
-            all = results_sim['all']
+        T_last = results_sim['T_last']
+        busy_variance = results_sim['busy_variance']
+        all = results_sim['all']
 
-            if simulation_config['type'] == 'min_timespan':
-                result_x = float(T_last)
-            elif simulation_config['type'] == 'min_variance':
-                result_x= float(busy_variance)
-            elif simulation_config['type'] == 'min_all':
-                result_x = float(all)
-            else:
-                print('未定义返回参数！')
-                result_x= float(T_last)
+        if simulation_config['type'] == 'min_timespan':
+            result_x = float(T_last)
+        elif simulation_config['type'] == 'min_variance':
+            result_x= float(busy_variance)
+        elif simulation_config['type'] == 'min_all':
+            result_x = float(all)
+        else:
+            print('未定义返回参数！')
+            result_x= float(T_last)
 
-            results.append([x_id,result_x])
-            id+=1
-            print(results)
+        results.append([x_id,result_x])
+        # print(results)
 
         return results
 
@@ -66,22 +57,11 @@ class GaSolver(ea.Problem):
         # 评估目标函数
         ObjV=[]
         # total_cost_array = np.zeros(Vars.shape[0])
-        num_cores = 4  # 并行核数
+        num_cores = 1  # 并行核数
+        print('num_cores:', num_cores)
         param_list = []  # 保存并行参数
-
-        # print(Vars.shape[0])
-        # 根据核数对并行任务分组
-        num_cores_used = Vars.shape[0] // num_cores + 1  # 根据变量数确定使用的核数
-        # num_cores_used=
-        print('num_cores_used',num_cores_used)
-
-        vars_id_list = [i for i in range(Vars.shape[0])]
-        group_id_list = [vars_id_list[num_cores * i:(i + 1) * num_cores] for i in range(num_cores_used)]
-        vars_list = [Vars.tolist()[num_cores * i:(i + 1) * num_cores] for i in range(num_cores_used)]
-
-        for core_id in range(len(group_id_list)):  # 对每个组赋值
-            if len(group_id_list[core_id]) > 0:
-                param_list.append([group_id_list[core_id], vars_list[core_id]])
+        for id in range(Vars.shape[0]):
+            param_list.append([id, Vars.tolist()[id]])
 
         pool = mp.Pool(num_cores)
         result = [pool.apply_async(self.obj_for_parallel, args=(item[0], item[1])) for item in param_list]

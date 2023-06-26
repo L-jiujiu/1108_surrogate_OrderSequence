@@ -34,51 +34,37 @@ class GaSolver(ea.Problem):
         ea.Problem.__init__(self, name, M, maxormins, Dim, varTypes, lb, ub, lbin, ubin)
         self.simulation_1=Simulation(simulation_config)
 
-    def obj_for_parallel(self, x_id_list, x_list):
+    def obj_for_parallel(self, x_id, x):
         results = []
-        id = 0
-        for x in x_list:
-            x_id = x_id_list[id]
-            print(x)
-            self.simulation_1.recycle_initial_GA(GA=list(x))  # 第二次仿真需要重启部分设置
-            results_sim = self.simulation_1.run(rule='GA')  # 运行仿真
-            T_last = results_sim['T_last']
-            busy_variance = results_sim['busy_variance']
-            all = results_sim['all']
+        print(x_id)
+        self.simulation_1.recycle_initial_GA(GA=list(x))  # 第二次仿真需要重启部分设置
 
-            if simulation_config['type'] == 'min_timespan':
-                result_x = float(T_last)
-            elif simulation_config['type'] == 'min_variance':
-                result_x = float(busy_variance)
-            elif simulation_config['type'] == 'min_all':
-                result_x = float(all)
-            else:
-                print('未定义返回参数！')
-                result_x = float(T_last)
-            results.append([x_id, result_x])
-            print(results)
-            id += 1
+        results_sim = self.simulation_1.run(rule='GA')  # 运行仿真
+        T_last = results_sim['T_last']
+        busy_variance = results_sim['busy_variance']
+        all = results_sim['all']
+
+        if simulation_config['type'] == 'min_timespan':
+            result_x = float(T_last)
+        elif simulation_config['type'] == 'min_variance':
+            result_x = float(busy_variance)
+        elif simulation_config['type'] == 'min_all':
+            result_x = float(all)
+        else:
+            print('未定义返回参数！')
+            result_x = float(T_last)
+        results.append([x_id, result_x])
+        print(results)
         return results
 
     def evalVars(self, Vars):
         # 评估目标函数
         ObjV = []
         # total_cost_array = np.zeros(Vars.shape[0])
-        num_cores = 2  # 并行核数
+        num_cores = 28  # 并行核数
         param_list = []  # 保存并行参数
-
-        # print(Vars.shape[0])
-        # 根据核数对并行任务分组
-        num_cores_used = Vars.shape[0] // num_cores + 1  # 根据变量数确定使用的核数
-        print('num_cores_used', num_cores_used)
-
-        vars_id_list = [i for i in range(Vars.shape[0])]
-        group_id_list = [vars_id_list[num_cores * i:(i + 1) * num_cores] for i in range(num_cores_used)]
-        vars_list = [Vars.tolist()[num_cores * i:(i + 1) * num_cores] for i in range(num_cores_used)]
-
-        for core_id in range(len(group_id_list)):  # 对每个组赋值
-            if len(group_id_list[core_id]) > 0:
-                param_list.append([group_id_list[core_id], vars_list[core_id]])
+        for id in range(Vars.shape[0]):
+            param_list.append([id, Vars.tolist()[id]])
 
         pool = mp.Pool(num_cores)
         result = [pool.apply_async(self.obj_for_parallel, args=(item[0], item[1])) for item in param_list]
@@ -154,34 +140,3 @@ if __name__ == '__main__':
     end = tm.perf_counter()
     print("程序共计用时 : %s Seconds " % (end - start))
 
-    # optimal:672
-    var=[
-        1, 4, 3, 7, 2, 7, 4, 3, 4, 5,
-        2, 4, 2, 6, 4, 3, 3, 8, 8, 5,
-        1, 7, 7, 1, 5, 5, 6, 2, 4, 4,
-        1, 6, 8, 6, 7, 5, 1, 5, 2, 8,
-
-        2, 1, 7, 8, 6, 7, 2, 4, 4, 2,
-        8, 1, 4, 4, 3, 5, 3, 2, 2, 3,
-        5, 2, 8, 4, 2, 2, 2, 3, 4, 5,
-        6, 3, 8, 4, 4, 3, 1, 3, 4, 6,
-
-        4, 1, 6, 7, 2, 3, 7, 8, 3, 2,
-        2, 4, 5, 7, 8, 6, 3, 7, 4, 1,
-        3, 6, 7, 3, 1, 6, 8, 7, 7, 7,
-        4, 1, 4, 3, 8, 3, 4, 2, 5, 1,
-
-        2, 2, 2, 3, 8, 5, 3, 3, 3, 7,
-        7, 6, 2, 4, 3, 2, 5, 6, 3, 4,
-        8, 2, 1, 6, 3, 2, 6, 2, 7, 1,
-        8, 2, 6, 5, 2, 1, 1, 5, 6, 5,
-
-        2, 5, 5, 7, 4, 8, 7, 5, 7, 3,
-        1, 7, 7, 1, 1, 4, 2, 3, 7, 8,
-        3, 1, 5, 2, 3, 6, 3, 5, 2, 1,
-        8, 3, 6, 1, 3, 1, 5, 6, 2, 3,
-
-        4, 4, 5, 6, 3, 4, 2, 2, 6, 4,
-        8, 5, 3, 1, 7, 2, 3, 4, 3, 2,
-        8, 1, 1, 1, 7, 5, 5, 8, 3, 2,
-        2, 2, 5, 5, 7]

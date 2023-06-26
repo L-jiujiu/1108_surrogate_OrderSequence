@@ -258,11 +258,11 @@ def read_data(filename):
     file.close()
     return tasks_val, machines_val, tasks
 
-def init_skuorder(table):
+def init_skuorder(table,skupath):
     num_section=6
     # 初始化sku所在的分区：sku名称，sku处理所需时间、sku所在分区
     cwd = os.getcwd()  # 读取当前文件夹路径
-    df = pd.read_excel(cwd + '/Fa_data/PickLinePos_time.xlsx', sheet_name='Part 1', usecols='B,C,E')
+    df = pd.read_excel(cwd + skupath, sheet_name='Part 1', usecols='B,C,E')
     df.dropna(axis=0, how='any', inplace=True)
     data_count = df.values
     num_sku = len(data_count)
@@ -299,7 +299,7 @@ def init_skuorder(table):
         order_array[row['id'] - 1, int(row['PosGroupID'] / 100 - 17)] = row['Time*Amount']
 
     notzero=np.ones((len(order_array),len(order_array[0])))
-    order_array=order_array+notzero
+    order_array=order_array #+notzero
     print(order_array)
     print(len(order_array))
     print(len(order_array[0]))
@@ -314,23 +314,26 @@ if __name__=="__main__":
     table = PrettyTable()
     table.field_names = ["Algorithm", "Cmax", "Execution time"]
 
+    tablee='/Fa_data/OrderPickDetail_gantt.xlsx'
+    skupath='/Fa_data/PickLinePos_time_gantt.xlsx'
+
     # tasks_val, machines_val, tasks=init_skuorder(table='/Fa_data/OrderPickDetail_less.xlsx')
     # tasks_val, machines_val, tasks=init_skuorder(table='/Fa_data/OrderPickDetail_median.xlsx')
-    tasks_val, machines_val, tasks=init_skuorder(table='/Fa_data/OrderPickDetail.xlsx')
+    tasks_val, machines_val, tasks=init_skuorder(table=tablee,skupath=skupath)
     # np.savetxt('test',tasks,delimiter=' ',fmt='%d')
     #
     # tasks_val, machines_val, tasks = read_data("flowshop_neh.txt")
 
     # tasks_val, machines_val, tasks = read_data("test")
 
-    # print("Clasic neh")
-    # start = time.perf_counter()
-    # seq, cmax = neh(tasks, machines_val, tasks_val)
-    # stop = time.perf_counter()
-    # print("Best Cmax: ", cmax)
-    # print("Time: ", round((stop - start), 3))
-    # table.add_row(["Classic", cmax, round((stop - start), 3)])
-    # print(seq)
+    print("Clasic neh")
+    start = time.perf_counter()
+    seq, cmax = neh(tasks, machines_val, tasks_val)
+    stop = time.perf_counter()
+    print("Best Cmax: ", cmax)
+    print("Time: ", round((stop - start), 3))
+    table.add_row(["Classic", cmax, round((stop - start), 3)])
+    print(seq)
     # #
     # print("Modificated neh")
     # start = time.perf_counter()
@@ -340,7 +343,7 @@ if __name__=="__main__":
     # print("Time: ", round((stop - start), 3))
     # table.add_row(["Modif", cmax, round((stop - start), 3)])
     # print(seq)
-    # #
+
     # print("Accelerated neh")
     # start = time.perf_counter()
     # seq, cmax = neh_acc(tasks, machines_val, tasks_val)
@@ -349,13 +352,14 @@ if __name__=="__main__":
     # print("Time: ", round((stop - start), 3))
     # table.add_row(["Acc", cmax, round((stop - start), 3)])
     # print(seq)
-    print("Acceledated + modif neh:")
-    start = time.perf_counter()
-    seq, cmax = neh_wm(tasks, machines_val, tasks_val)
-    stop = time.perf_counter()
-    policzony = round((stop - start), 3)
-    table.add_row(["Acc + modif", cmax, round((stop - start), 3)])
-    print(seq)
+    #
+    # print("Acceledated + modif neh:")
+    # start = time.perf_counter()
+    # seq, cmax = neh_wm(tasks, machines_val, tasks_val)
+    # stop = time.perf_counter()
+    # policzony = round((stop - start), 3)
+    # table.add_row(["Acc + modif", cmax, round((stop - start), 3)])
+    # print(seq)
 
 
     print(table)

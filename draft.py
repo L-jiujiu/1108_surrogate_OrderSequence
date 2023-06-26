@@ -1,3 +1,5 @@
+import copy
+
 import numpy
 
 
@@ -12,5 +14,216 @@ import numpy
 #
 # print(numpy.array_equiv (list1,list2))
 
-for i in numpy.arange(0,2000000,0.1):
-    print(i)
+# for i in numpy.arange(0,2000000,0.1):
+#     print(i)
+import numpy as np
+#
+# list=[
+#     [1,2],
+#     [3,4],
+#     [1,4]
+# ]
+# list=np.array(list)
+# max=np.max(list[:,0])
+# max_index=np.where(list[:,0]==int(max))[0]
+# print(max,max_index[0])
+import random
+
+# list=random.sample([i for i in range(0,6557)],6557)
+# print(list)
+# array=[[10000.],
+#  [    0.],
+#  [    0.],
+#  [    0.]]
+#
+# b=np.tile(array,(1,8))
+# print(b)
+# my_list=[1,2,3,4,5]
+# a=[0,1]
+# sub_list=[]
+# for i in a:
+#     sub_list.append(my_list[i])
+# max_index=my_list.index(max(sub_list))
+# print(max_index)
+
+# order_array_first=[
+#     [0, 0, 0, 0, 0, 0, 0, 0 ]
+#
+# ]
+#
+# print(order_array_first[:,2:6])
+# # 后4列相加
+# if(section_jam_array[6]==0):
+#     last4=np.sum(order_array_first[:,2:6],axis=1)
+# print(last4)
+
+#           'rgb(114, 44, 121)',
+# import random
+# # print(random(0,256))
+# print(
+#  # 'rgb'+str(np.random.choice(range(256),size=3))
+#  'rgb('+str(random.randint(0,256))+','+str(random.randint(0,256))+','+str(random.randint(0,256))+')'
+#  # +','+random(0,255)+','+random(0,256)+')'
+# )
+
+
+# 其余工序的最晚完成时间-max（已经到这个机器的最早加工时间 ，第0时刻工作的完成时间）就是这个工序的冗余，cost是冗余比这个工序的加工时间的差
+from Buffer_Class import Section,Order
+num_section=6
+section_list=[]
+for i in range(0, (num_section), 1):
+    section_input = {
+        'name': str(i + 17) + '01',  # 分区名称
+        'num': i,  # 分区序号
+        'max_order_num': 1 + 5  # 最多停滞order数量
+    }
+    section_list.append(Section(section_input))
+
+# process:89294167024400[('0', 23.0), ['-1', 0], ['-2', 0], ['5', 5.0]]
+# process:89292176044508[('1', 2.0), ['-1', 0], ['2', 4.0], ['-2', 0]]
+# process:89292716106606[['-1', 0], ['2', 2.0], ['-2', 0], ['4', 1.0]]
+
+
+# order_input1 = {'name': 'E', 'num': 1, 'time': None,
+#                 'work_schedule': [['0', 1.0],['1', 1.0], ['-1', 0], ['-2', 0]],}
+# order_input2 = {'name': 'A', 'num': 2, 'time': None,
+#                 'work_schedule': [('0', 0.0), ['-1', 0], ['2', 2.0], ['-2', 0], ['5', 1.0]],}
+# order_input3 = {'name': 'B', 'num': 3, 'time': None,
+#                 'work_schedule': [['-1', 0], ('3', 0.0), ['-2', 0], ['4', 1.0]],}
+# order_input4 = {'name': 'C', 'num': 4, 'time': None,
+#                 'work_schedule': [('1', 0.0), ['-1', 0], ('2', 0.0), ['-2', 0], ['4', 1.0]],}
+
+order_input1 = {'name': '35', 'num': 1, 'time': None,
+                'work_schedule': [('0', 20.0), ['-1', 0], ['-2', 0], ['5', 5.0]],}
+order_input2 = {'name': '60', 'num': 2, 'time': None,
+                'work_schedule': [['0', 1.0], ['-1', 0], ['2', 8.0], ['-2', 0], ['4', 8.0]],}
+order_input3 = {'name': '51', 'num': 3, 'time': None,
+                'work_schedule': [('1', 9.0), ['-1', 0], ['3', 3.0], ['-2', 0], ['4', 4.0]],}
+order_input4 = {'name': '23', 'num': 4, 'time': None,
+                'work_schedule': [['-1', 0], ('2', 7.0), ['-2', 0], ['4', 6.0]],}
+order_input5 = {'name': '91', 'num': 4, 'time': None,
+                'work_schedule': [('1', 0.0), ['-1', 0], ('3', 14.0), ['-2', 0], ['4', 5.0]],}
+order_input6 = {'name': '28', 'num': 4, 'time': None,
+                'work_schedule': [['-1', 0], ['-2', 0], ('5', 14.0)],}
+
+
+
+order_1=Order(order_input1)
+order_2=Order(order_input2)
+order_3=Order(order_input3)
+order_4=Order(order_input4)
+order_5=Order(order_input5)
+order_6=Order(order_input6)
+
+section_list[0].process_order_list.append(order_1)
+section_list[0].waiting_order_list.append(order_2)
+section_list[1].process_order_list.append(order_3)
+section_list[2].waiting_order_list.append(order_4)
+
+section_list[3].process_order_list.append(order_5)
+section_list[5].process_order_list.append(order_6)
+
+# edge_list = [['E1', 'D', 1],
+# 前序任务，本任务，本任务的时间
+
+# edge list中有3种形式的边
+# 1\[本工序，'D',本工序时间]：['E1', 'D', 1],
+# 2\[同一个订单工序的前一，后一，前一的时间]：['E1', 'E2', 1],
+# 3\[同一个工区订单的前一，后一，前一的时间]
+
+node_list=[]
+edge_list=[]
+all_order_insection=[[],[],[],[],[],[],]
+section_process_available=[0,0,0,0,0,0]
+
+for section in section_list:
+    print(section.name)
+    if(len(section.process_order_list)>0):
+        section_process_available[section.num]=1
+    for process in section.process_order_list:
+        # 过滤掉工时为0的工序
+        work_schedule_copy=copy.deepcopy(process.work_schedule)
+        work_schedule_filter=list(filter(lambda x:x[1]!=0,work_schedule_copy))
+        # print(f'w:{work_schedule_filter}')
+        print(f'process:{process.name}{work_schedule_filter}')
+
+        # 1\将所有工序以：[本工序，'D',本工序时间]：['E1', 'D', 1]的形式加入
+        for i in range(0,len(work_schedule_filter)):
+            edge_list.append([str(process.name)+str(i),'D',work_schedule_filter[i][1]])
+            node_list.append(str(process.name)+str(i))
+            all_order_insection[int(work_schedule_filter[i][0])].append([str(process.name)+str(i),work_schedule_filter[i][1]])
+            # all_order_insection[int(work_schedule_filter[i][0])].insert(0,[str(process.name)+str(i),work_schedule_filter[i][1]])
+            # todo:append这里顺序有问题，process的理应放在最前面，但还不知道要怎么改不报错
+        # 2\[如果一个订单有2个及以上的工序，同一个订单工序的前一，后一，前一的时间]：['E1', 'E2', 1],
+        len_schedule = len(work_schedule_filter)
+        if len_schedule>1:
+            for ii in range(0, len_schedule):
+                if ii + 1 < len_schedule:
+                    edge_list.append([str(process.name) + str(ii), str(process.name) + str(ii+1), work_schedule_filter[ii][1]])
+
+    for wait in section.waiting_order_list:
+        # all_order_insection.append(wait.name)
+        # 过滤掉工时为0的工序
+        work_schedule_copy = copy.deepcopy(wait.work_schedule)
+        work_schedule_filter = list(filter(lambda x: x[1] != 0, work_schedule_copy))
+        print(f'wait:{wait.name}{work_schedule_filter}')
+
+        # print(f'w:{work_schedule_filter}')
+
+        # 1\将所有工序以：[本工序，'D',本工序时间]：['E1', 'D', 1]的形式加入
+        for i in range(0, len(work_schedule_filter)):
+            edge_list.append([str(wait.name) + str(i), 'D', work_schedule_filter[i][1]])
+            node_list.append(str(wait.name)+str(i))
+            all_order_insection[int(work_schedule_filter[i][0])].append([str(wait.name)+str(i),work_schedule_filter[i][1]])
+        # {'0': [['E0', 1.0]], '1': [['E1', 1.0]], '2': [['A0', 2.0]], '3': [], '4': [['B0', 1.0], ['C0', 1.0]],
+        #  '5': [['A1', 1.0]]}
+
+        # 2\[如果一个订单有2个及以上的工序，同一个订单工序的前一，后一，前一的时间]：['E1', 'E2', 1],
+        len_schedule = len(work_schedule_filter)
+        if len_schedule>1:
+            for ii in range(0, len_schedule):
+                if ii + 1 < len_schedule:
+                    edge_list.append([str(wait.name) + str(ii), str(wait.name) + str(ii+1), work_schedule_filter[ii][1]])
+                    print(str(wait.name) + str(ii), str(wait.name) + str(ii+1))
+    print('\n')
+# [['E1'], ['E2'], ['A1'], [], ['B1', 'C1'], ['A2']]
+# 3\[同一个工区订单的前一，后一，前一的时间]
+print(f'all_order_insection:{all_order_insection}')
+for order_insection in all_order_insection:
+    len_order_insection = len(order_insection)
+    # print(order_insection)
+    if(len_order_insection>1):
+        for ii in range(0, len_order_insection):
+            if ii + 1 < len_order_insection:
+                edge_list.append(
+                    [order_insection[ii][0],order_insection[ii+1][0], order_insection[ii][1]])
+                # print(order_insection[ii][0],order_insection[ii+1][0])
+node_list.append('D')
+print(f'\nedge{len(edge_list)}:{edge_list}')
+print(f'\nnode{len(node_list)}:{node_list}')
+
+from Fast_track import find_shorted_path
+
+
+section_list_lefttime,section_list_lefttime_pre,max_time=find_shorted_path(node_list,edge_list,all_order_insection)
+
+# 如果section process里面有订单，则前面的空余为0
+print(section_process_available)
+for i in range(0,len(section_list_lefttime_pre)):
+    if section_process_available[i]==1:
+        section_list_lefttime_pre[i]=0
+
+print(f'关键路径用时：{max_time}')
+print(f'【后面的空余】各点从最早完成到关键路径间的剩余时间:\n{section_list_lefttime}')
+print(f'【前面的空余】各点从现在到最迟开始时间的剩余时间：\n{section_list_lefttime_pre}')
+
+
+
+
+# find_shorted_path(node_list,edge_list)
+
+# section_list[0]
+# section1701_order_workschedule_list=[[['0', 1.0],['1', 1.0], ['-1', 0], ['-2', 0]]]
+# section1901_order_workschedule_list=[[('0', 0.0), ['-1', 0], ['2', 2.0], ['-2', 0], ['5', 1.0]]]
+# section2101_order_workschedule_list=[[['-1', 0], ('3', 0.0), ['-2', 0], ['4', 1.0]],[('1', 0.0), ['-1', 0], ('2', 0.0), ['-2', 0], ['4', 1.0]]]
+
