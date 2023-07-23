@@ -48,7 +48,11 @@ class Section:
         time_wait=0
         time_process_left=0
         for order in self.waiting_order_list:
-            time_wait=time_wait+order_array[(order.num,self.num)]
+            # time_wait=time_wait+order_array[(order.num,self.num)]
+            for workschedule in order.work_schedule:
+                if workschedule[1]!=0:
+                    time_wait = time_wait + workschedule[1]
+                    break
         if(len(self.process_order_list) != 0):
             order_now = self.process_order_list[0]
             time_process_left=time_process_left+\
@@ -78,7 +82,7 @@ class Section:
         order_now = self.process_order_list[0]
         order_insystem_array[(order_now.num,self.num)]=0 # 不是系统即将需要处理的订单，当前section任务归0
         # print('工作前%s'%order_now.work_schedule[order_now.now_schedule_num])
-        a = float(order_now.work_schedule[order_now.now_schedule_num][1] - timestep)
+        a = round(float(order_now.work_schedule[order_now.now_schedule_num][1] - timestep),1)
         # print(a,timestep)
         order_now.work_schedule[order_now.now_schedule_num] = (
             str(self.num), a)
