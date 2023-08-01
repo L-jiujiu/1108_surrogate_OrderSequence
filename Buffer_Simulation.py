@@ -424,43 +424,6 @@ class Simulation:
                     break
             return order_return
 
-        # elif self.rule == 'SPT':
-        #     # 最短的订单先发
-        #     order_return = None
-        #     busy_section = np.where(self.section_process_array[:6, 0] != 0)
-        #     jam_array = np.zeros(6)
-        #     if self.section_busyness_array[6, 0] != 0:
-        #         jam_array[2] = 1
-        #         jam_array[3] = 1
-        #         jam_array[4] = 1
-        #         jam_array[5] = 1
-        #     elif self.section_busyness_array[7, 0] != 0:
-        #         jam_array[4] = 1
-        #         jam_array[5] = 1
-        #     busy_array = [0, 0, 0, 0, 0, 0]
-        #     for i in busy_section[0]:
-        #         busy_array[i] = 1
-        #     cost_checkjam = np.dot(self.order_array_first, jam_array + busy_array)
-        #     cost_checkjam = cost_checkjam + self.order_notstart_array[:, 0] / 100
-        #     order_notjam_num = np.where(
-        #         cost_checkjam == 0)  # line就是当前最小的order序号，对于已经派发的订单，他的order array weight是极大的数10000
-        #     # 目前可以发的订单集合
-        #     order_notjam_num_list = list(order_notjam_num[0])
-        #     if len(order_notjam_num_list) == 0:
-        #         return None
-        #     order_cannot_array = np.ones((self.num_order, 1))
-        #     for order in order_notjam_num_list:
-        #         order_cannot_array[order, 0] = 0
-        #     # 如果当前所有工区都不忙，则发一个耗时最长的订单:
-        #     # if np.sum(busy_array) == 0:
-        #     # print(order_notjam_num_list)
-        #     for i in range(len(self.order_total_time_rank)-1,-1,-1):
-        #         if self.order_total_time_rank[i] in order_notjam_num_list:
-        #             order_return = self.order_total_time_rank[i]
-        #             break
-        #     # print(order_return)
-        #     return order_return
-
         elif self.rule == 'SPT':
             order_list=[]
             for order in self.order_notstart:
@@ -647,7 +610,7 @@ class Simulation:
                 # 如果有有工区在忙，需要计算各分区实时可用时间
                 max_time, section_list_lefttime, section_list_lefttime_pre = self.Cal_Available_time_in_Gantt()
 
-                # print(f'关键路径用时：{max_time}')
+                print(f'关键路径用时：{max_time}')
                 # print(f'【后面的空余】各点从最早完成到关键路径间的剩余时间:{section_list_lefttime}')
                 # print(f'【前面的空余】各点从现在到最迟开始时间的剩余时间：{section_list_lefttime_pre}')
 
@@ -656,30 +619,34 @@ class Simulation:
                 # 第1个工序(本来就是空的)，考虑｜time-前空余｜的绝对值，好的订单cost是少的，尽量填满 1
                 # 第2、3个工序，考虑｜time-后空余｜，好的订单cost相加起来是最少的，干扰最少 1，1
                 for order in self.order_notstart:
+                    if order.num not in order_notjam_num_list:
+                        continue
                     order_id_list.append(order.num)
                     # print(self.order_array)
                     # print(order.num,order.work_schedule)
                     weight=self.weight_buffer
 
+                    # 第一个目标工区
                     order_section_first=self.order_array_first[order.num,:]
                     order_time_first=np.sum(np.multiply(self.order_array[order.num,:6],order_section_first))
+                    # 前面的空余：
                     section_list_lefttime_pre_1=np.sum(np.multiply(section_list_lefttime_pre,order_section_first))
+                    # 后面的空余：
                     section_list_lefttime_1 = np.sum(np.multiply(section_list_lefttime, order_section_first))
-
                     # weight=[5,3,1,10,5,3]
-                    # print(weight)
+
                     # 如果order time少于区间冗余空间，则计order time；如果多于区间冗余空间，则计多出去的值，所以选一个最大的
-                    first_dif_pre=order_time_first*weight[0] if section_list_lefttime_1-order_time_first>=0 else (section_list_lefttime_1-order_time_first)*weight[1]
-                    # first_dif_aft=order_time_first*weight[0] if section_list_lefttime_pre_1-order_time_first>=0 else (section_list_lefttime_pre_1-order_time_first)*weight[1]
-                    # first_dif=abs(first_dif_pre-first_dif_aft)
+                    first_dif_pre=order_time_first*weight[0] if section_list_lefttime_pre_1-order_time_first>=0 else (section_list_lefttime_pre_1-order_time_first)*weight[1]
+                    first_dif=first_dif_pre
 
-                    # first_dif=first_dif_pre
-                    first_dif=section_list_lefttime_pre_1
 
+                    # 第二个目标工区
                     order_section_second = self.order_array_second[order.num, :]
                     order_time_second = np.sum(np.multiply(self.order_array[order.num, :6], order_section_second))
                     section_list_lefttime_2 = np.sum(np.multiply(section_list_lefttime, order_section_second))
                     section_list_lefttime_pre_2 = np.sum(np.multiply(section_list_lefttime_pre, order_section_second))
+
+                    section_list_lefttime_2_real=max(section_list_lefttime_2,section_list_lefttime_pre_2)
 
                     # second_dif_aft=order_time_second*weight[2] if section_list_lefttime_2-order_time_second>=0 else (section_list_lefttime_2-order_time_second)*weight[3]
                     # second_dif_pre=order_time_second*weight[2] if section_list_lefttime_pre_2-order_time_second>=0 else (section_list_lefttime_pre_2-order_time_second)*weight[3]
@@ -688,34 +655,33 @@ class Simulation:
 
                     # section_list_lefttime_2_re = min(section_list_lefttime_2, max_time - order_time_first)
                     # section_list_lefttime_2_re=min(section_list_lefttime_2,section_list_lefttime_2-(order_time_first+section_list_lefttime_2-max_time)/2)
-                    section_list_lefttime_2_re_pre=min(section_list_lefttime_pre_2,section_list_lefttime_pre_2-(order_time_first+section_list_lefttime_pre_2-max_time)/2)
-                    section_list_lefttime_2_re=section_list_lefttime_2_re_pre
+                    # section_list_lefttime_2_re_pre=min(section_list_lefttime_pre_2,section_list_lefttime_pre_2-(order_time_first+section_list_lefttime_pre_2-max_time)/2)
+                    # section_list_lefttime_2_re=section_list_lefttime_2_re_pre
+                    # second_dif_re = order_time_second * weight[2] if section_list_lefttime_2_re - order_time_second >= 0 else (section_list_lefttime_2_re - order_time_second) * weight[3]
+                    second_dif_re = order_time_second * weight[2] if section_list_lefttime_2_real - order_time_second >= 0 else (section_list_lefttime_2_real - order_time_second) * weight[3]
+                    second_dif=second_dif_re
 
-                    # section_list_lefttime_2_re=max(section_list_lefttime_2_re_pre,section_list_lefttime_2_re)
-
-                    second_dif_re = order_time_second * weight[2] if section_list_lefttime_2_re - order_time_second >= 0 else (section_list_lefttime_2_re - order_time_second) * weight[3]
-                    # second_dif=second_dif_pre
-                    # second_dif=second_dif_re
-                    second_dif=section_list_lefttime_pre_2
 
                     order_section_third = self.order_array_third[order.num, :]
                     order_time_third = np.sum(np.multiply(self.order_array[order.num, :6], order_section_third))
                     section_list_lefttime_3 = np.sum(np.multiply(section_list_lefttime, order_section_third))
                     section_list_lefttime_pre_3 = np.sum(np.multiply(section_list_lefttime_pre, order_section_third))
+                    section_list_lefttime_3_real = section_list_lefttime_pre_3-(max_time-section_list_lefttime_2+order_time_second)
+
+                    third_dif_re=order_time_third*weight[4] if section_list_lefttime_3_real-order_time_third>=0 else (section_list_lefttime_3_real-order_time_third)*weight[5]
+
+
                     # third_dif_aft=order_time_third*weight[4] if section_list_lefttime_3-order_time_third>=0 else (section_list_lefttime_3-order_time_third)*weight[5]
                     # third_dif_pre=order_time_third*weight[4] if section_list_lefttime_pre_3-order_time_third>=0 else (section_list_lefttime_pre_3-order_time_third)*weight[5]
                     # third_dif=abs(third_dif_aft-third_dif_pre)
                     # third_dif=third_dif_aft
                     # third_dif=third_dif_pre
 
-                    section_list_lefttime_3_re=min(section_list_lefttime_3,section_list_lefttime_3-(order_time_first+order_time_second+section_list_lefttime_3-max_time)/2)
-                    section_list_lefttime_3_re_pre=min(section_list_lefttime_pre_3,section_list_lefttime_pre_3-(order_time_first+order_time_second+section_list_lefttime_pre_3-max_time)/2)
+                    # section_list_lefttime_3_re=min(section_list_lefttime_3,section_list_lefttime_3-(order_time_first+order_time_second+section_list_lefttime_3-max_time)/2)
+                    # section_list_lefttime_3_re_pre=min(section_list_lefttime_pre_3,section_list_lefttime_pre_3-(order_time_first+order_time_second+section_list_lefttime_pre_3-max_time)/2)
                     # section_list_lefttime_3_re=min(section_list_lefttime_3_re_pre,section_list_lefttime_3_re)
 
-                    section_list_lefttime_3_re=section_list_lefttime_3_re_pre
-                    third_dif_re=order_time_third*weight[4] if section_list_lefttime_3_re-order_time_third>=0 else (section_list_lefttime_3_re-order_time_third)*weight[5]
-                    # third_dif=third_dif_re
-                    third_dif=section_list_lefttime_pre_3
+                    third_dif=third_dif_re
 
                     time_cal=np.sum(first_dif)+\
                              np.sum(second_dif)+\
@@ -725,7 +691,7 @@ class Simulation:
 
                 order_return=order_id_list[order_timecal_list.index(max(order_timecal_list))]
                 # print(f'index:{order_id_list[order_timecal_list.index(max(order_timecal_list))]}')
-                # print(f'决定派发订单order_{order_return}:cost={max(order_timecal_list)}')
+                print(f'决定派发订单order_{order_return}:cost={max(order_timecal_list)}')
                 return order_return
 
 
@@ -1178,7 +1144,7 @@ class Simulation:
             'order_start_list': self.order_start_num,
             'all': T_last + self.busy_variance_sum / 5
         }
-        # print(results)
+        print(results)
         # print(self.order_du)
         return results
 
@@ -1198,6 +1164,7 @@ if __name__ == "__main__":
 
     # 0:first+,1:first-, 2:second+,3:second-, 4:third+,5:third-
     weight_list_buffer=[
+        # [0.5,1,0.5,1,0.5,1],
         [1,1,1,1,1,1],
         # [0,1,0,1,0,1],
         # [1,0,1,0,1,0],

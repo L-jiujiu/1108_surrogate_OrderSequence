@@ -12,14 +12,16 @@ import os
 import random
 
 from Class import Sku, Section, Order, Time, Data_Analysis
-from Other_Functions import Find_Section_now_num, Check_jam,Check_jam_all, \
+from Other_Functions import Find_Section_now_num, Check_jam, Check_jam_all, \
     display_order_list_simple, display_order_list
+
+
 # import warnings
 # warnings.filterwarnings('ignore')
 class Simulation:
     def __init__(self, simulation_config):
         self.T = simulation_config['T']  # 最高仿真时长
-        self.step=simulation_config['step'] # 时序仿真节奏
+        self.step = simulation_config['step']  # 时序仿真节奏
         self.path_order_sku_map = simulation_config['path_order_sku_map']  # order-sku图
         self.path_sku_time_map = simulation_config['path_sku_time_map']  # sku-section图
 
@@ -44,7 +46,7 @@ class Simulation:
 
         # 初始化画图工具
         self.data_analysis = Data_Analysis()
-        self.buffer_num=simulation_config['buffer_num']
+        self.buffer_num = simulation_config['buffer_num']
 
         # 初始化sku、订单信息，生成订单在各分区的用时矩阵order_array
         self.init_section()
@@ -59,20 +61,23 @@ class Simulation:
         # 初始化recorder
         self.init_workload_recorder()
         print('init 了')
-        self.order_du=0
-        self.section_HF_x=np.zeros(6)
+        self.order_du = 0
+        self.section_HF_x = np.zeros(6)
 
         # 学习率相关参数
-        self.z=0.5
-        self.lam=0.5
+        self.z = 0.5
+        self.lam = 0.5
         # 是否是新手section,是新手为1，不是新手为0
-        self.section_newlearn=[1,1,1,1,1,1]
+        self.section_newlearn = [1, 1, 1, 1, 1, 1]
         # self.section_newlearn=[0,0,0,0,0,0]
+        # self.section_newlearn=[1,0,0,0,0,0]
+        # x到多少的时候可以不优先新手
+        self.x_max=0
 
-    def HF_LearningRate_function(self,time_original,x):
-        if x==0:
-            x=1
-        time_real=1/self.z*time_original*(self.z+(1-self.z)*(x**(-self.lam)))
+    def HF_LearningRate_function(self, time_original, x):
+        if x == 0:
+            x = 1
+        time_real = 1 / self.z * time_original * (self.z + (1 - self.z) * (x ** (-self.lam)))
 
         return time_real
 
@@ -83,7 +88,7 @@ class Simulation:
             section_input = {
                 'name': str(i + 17) + '01',  # 分区名称
                 'num': i,  # 分区序号
-                'max_order_num': 1+self.buffer_num  # 最多停滞order数量
+                'max_order_num': 1 + self.buffer_num  # 最多停滞order数量
             }
             self.section_list.append(Section(section_input))
 
@@ -146,7 +151,7 @@ class Simulation:
         for index, row in data_order.iterrows():
             # 修改订单用时矩阵
             self.order_array[int(row['id']) - 1, int(row['PosGroupID'] / 100 - 17)] = row['Time*Amount']
-            self.order_array_01[int(row['id']) - 1, int(row['PosGroupID'] / 100 - 17)]=1
+            self.order_array_01[int(row['id']) - 1, int(row['PosGroupID'] / 100 - 17)] = 1
         # np.set_printoptions(threshold=np.sys.maxsize)
         # print(f'order_array 6:{self.order_array}')
         order_mainstream_workstep = np.ones((1, self.num_order))
@@ -205,8 +210,6 @@ class Simulation:
         # print(busy_sad)
         self.order_array_first = np.zeros((self.num_order, self.num_section))
 
-
-
     def recycle_initial(self):
         # 重复调用仿真时的初始化设置
         # print(self.order_notstart_origin)
@@ -225,7 +228,7 @@ class Simulation:
         self.data_analysis = Data_Analysis()
         # print('recycle了')
 
-    def recycle_initial_GA(self,GA):
+    def recycle_initial_GA(self, GA):
         # 重复调用仿真时的初始化设置,需要更新order顺序表时
         # print(self.order_notstart_origin)
         self.sku_list = copy.deepcopy(self.sku_list_copy)
@@ -242,7 +245,8 @@ class Simulation:
         # self.op_method = simulation_config['optimization_method']
         self.data_analysis = Data_Analysis()
 
-        self.order_list_GA=GA
+        self.order_list_GA = GA
+
         # print(GA)
         # print('recycle了')
 
@@ -254,10 +258,11 @@ class Simulation:
         # print(self.section_HF_x)
         # print(self.section_HF_x[1])
         for kk in order_now.work_schedule:
-            if kk[0] not in ['-1','-2']:
+            if kk[0] not in ['-1', '-2']:
                 # print(kk)
-                if(self.section_newlearn[int(kk[0])]==1): # 如果是新手section，则乘上学习率
-                    kk[1]=round(self.HF_LearningRate_function(time_original=kk[1],x=self.section_HF_x[int(kk[0])]),1)
+                if (self.section_newlearn[int(kk[0])] == 1):  # 如果是新手section，则乘上学习率
+                    kk[1] = round(self.HF_LearningRate_function(time_original=kk[1], x=self.section_HF_x[int(kk[0])]),
+                                  1)
         # print(order_now.work_schedule)
 
         # 3\赋予section_now为order_now第一个不为负的section，得到第一个不为负section的编号和当前order所处的工序
@@ -270,7 +275,6 @@ class Simulation:
         # print(order_now.num, order_now.now_section_num)
         # self.section_waiting_array[self.section_list[order_now.now_section_num].num][0]+=1
         # self.section_waiting_time_array[self.section_list[order_now.now_section_num].num][0]+=self.order_array[order_now.num][self.section_list[order_now.now_section_num].num]
-
 
         # 5\更新order_before_section：上一个派发订单第一个去的非主路section
         self.order_before_section = order_now.now_section_num
@@ -306,7 +310,7 @@ class Simulation:
         weight_flag = 0
         # 生成先后要去的不同工区各自的权重
         # print(len(order_array_nonzero[0]))
-        self.order_first_section=[]
+        self.order_first_section = []
         for i in range(0, len(order_array_nonzero[0])):
             if (i == 0):
                 weight_flag = 0
@@ -315,9 +319,9 @@ class Simulation:
             else:
                 weight_flag = 0
             order_array_weight[order_array_nonzero[0][i], order_array_nonzero[1][i]] = rule[weight_flag]
-            if(weight_flag==0):
+            if (weight_flag == 0):
                 self.order_first_section.append(order_array_nonzero[1][i])
-                self.order_array_first[order_array_nonzero[0][i], order_array_nonzero[1][i]]=1
+                self.order_array_first[order_array_nonzero[0][i], order_array_nonzero[1][i]] = 1
         # print(self.order_array)
         # print(self.order_array_first)
         # print(f'order_first_section({len(self.order_first_section)}):{self.order_first_section})')
@@ -332,37 +336,56 @@ class Simulation:
         # print(f'order_array 7:{order_array_weight}')
 
         # print(order_total_time_rank)
+        # 计算每个订单的用时 time
+        # learning_order_array = self.cal_learning_array()
+        order_array_weight2 = np.zeros((self.num_order, self.num_section))
+        weight_flag = 3
+        order_array_nonzero = np.nonzero(self.order_array[:, :6])
+        # 生成先后要去的不同工区各自的权重
+        for i in range(0, len(order_array_nonzero[0])):
+            if (i == 0):
+                weight_flag = 3
+            elif (order_array_nonzero[0][i] == order_array_nonzero[0][i - 1]):
+                weight_flag = weight_flag + 1
+            else:
+                weight_flag = 3
+            order_array_weight2[order_array_nonzero[0][i], order_array_nonzero[1][i]] = self.order_array[
+                                                                                            order_array_nonzero[0][i],
+                                                                                            order_array_nonzero[1][i]] \
+                                                                                        * rule[weight_flag]
+        self.order_time_sum = np.array(order_array_weight2.sum(axis=1)).reshape(self.num_order, 1)
 
         return order_array_weight
 
     def cal_learning_array(self):
         # print(f'self.section_HF_x:{self.section_HF_x}')
-        learning_order_array=[]
-        for i in range(0,6):
-            learning_order_array.append(self.HF_LearningRate_function(np.transpose(self.order_array[:,i]),self.section_HF_x[i]))
+        learning_order_array = []
+        for i in range(0, 6):
+            learning_order_array.append(
+                self.HF_LearningRate_function(np.transpose(self.order_array[:, i]), self.section_HF_x[i]))
 
-        learning=np.transpose(
+        learning = np.transpose(
             np.stack((
-            learning_order_array[0],
-            learning_order_array[1],
-            learning_order_array[2],
-            learning_order_array[3],
-            learning_order_array[4],
-            learning_order_array[5],
-        )))
+                learning_order_array[0],
+                learning_order_array[1],
+                learning_order_array[2],
+                learning_order_array[3],
+                learning_order_array[4],
+                learning_order_array[5],
+            )))
         # print(learning)
         return learning
 
     # # cost_cal_rule为各个决策规则，返回的是order的排序，也就是order num
     def cost_cal_rule(self):
-        if self.rule=='Fa_origin':
-            order_id=None
+        if self.rule == 'Fa_origin':
+            order_id = None
             for order in self.order_notstart:
-                jam_check = Check_jam(order, self.section_busyness_array,max=self.section_list[0].max_order_num)
-                if jam_check =='error':
+                jam_check = Check_jam(order, self.section_busyness_array, max=self.section_list[0].max_order_num)
+                if jam_check == 'error':
                     continue
                 for i in range(len(order.work_schedule)):
-                    if (int(order.work_schedule[i][0]) <0):  # 如果第i步为mainstream，跳过这一步判断下一步是否还为mainstream
+                    if (int(order.work_schedule[i][0]) < 0):  # 如果第i步为mainstream，跳过这一步判断下一步是否还为mainstream
                         continue
                     else:
                         section_waiting_num = \
@@ -370,86 +393,62 @@ class Simulation:
                             + len(self.section_list[int(order.work_schedule[i][0])].process_order_list) \
                             + len(self.section_list[int(order.work_schedule[i][0])].finish_order_list)
                         break
-                if section_waiting_num==0:
-                    order_id=order.num
+                if section_waiting_num == 0:
+                    order_id = order.num
                     break
                 else:
                     continue
             return order_id
 
-        elif self.rule=='random':
+        elif self.rule == 'random':
             rand = random.randint(0, len(self.order_notstart) - 1)
-            order_id=self.order_notstart[rand].num
+            order_id = self.order_notstart[rand].num
             return order_id
-
-        elif self.rule=='T':
-            cost_all = np.dot(self.order_array_weight_all, self.section_busyness_time_array)  # 订单次序权重 点乘 工站实时工作状态
-            cost = cost_all + self.order_notstart_array  # 将已经完成派发的订单赋极大值
-            line, col = np.where(cost == np.min(cost))  # line就是当前最小的order序号，对于已经派发的订单，他的order array weight是极大的数10000
-            return line[0]
-
-        elif self.rule=='N':
-            cost_all = np.dot(self.order_array_weight_all, self.section_busyness_array)  # 订单次序权重 点乘 工站实时工作状态
-            cost = cost_all + self.order_notstart_array  # 将已经完成派发的订单赋极大值
-            line, col = np.where(cost == np.min(cost))  # line就是当前最小的order序号，对于已经派发的订单，他的order array weight是极大的数10000
-            return line[0]
-
-        elif self.rule=='Npro':
-            # 决策规则1pro：多项式 𝒄𝒐𝒔𝒕=𝒂×N_𝟎+𝒃×N_𝟏+𝒄×N_𝟐，多个最小就选第1个，N代表工区缓冲区+工作区（当前+即将到达的）订单数量
-            cost_all = np.dot(self.order_array_weight_all, self.section_busyness_array_pro)  # 订单次序权重 点乘 工站实时工作状态
-            cost = cost_all + self.order_notstart_array  # 将已经完成派发的订单赋极大值
-            line, col = np.where(cost == np.min(cost))  # line就是当前最小的order序号，对于已经派发的订单，他的order array weight是极大的数10000
-            return line[0]
-
-        elif self.rule == 'Tpro':
-            # 决策规则2pro：多项式 𝒄𝒐𝒔𝒕=𝒂×T_𝟎+𝒃×T_𝟏+𝒄×T_𝟐，多个最小就选第1个，T代表工区缓冲区+工作区（当前+即将到达的）订单待加工时间
-            # print('11111111111')
-            # print(self.order_array_weight_all)
-            # print(self.order_array_weight_all.shape[0],self.order_array_weight_all.shape[1])
-
-            cost_all = np.dot(self.order_array_weight_all, self.section_busyness_time_array_pro)  # 订单次序权重 点乘 工站实时工作状态
-            cost = cost_all + self.order_notstart_array  # 将已经完成派发的订单赋极大值
-            line, col = np.where(cost == np.min(cost))  # line就是当前最小的order序号，对于已经派发的订单，他的order array weight是极大的数10000
-            # print(self.order_array_weight_all[line[0]])
-            return line[0]
 
         elif self.rule == 'T+time':
             cost_all = np.dot(self.order_array_weight_all, self.section_busyness_time_array)  # 订单次序权重 点乘 工站实时工作状态
-            learning_order_array=self.cal_learning_array()
+            a = self.order_time_sum
+            cost = cost_all + self.order_notstart_array + a  # 将已经完成派发的订单赋极大值
+            line, col = np.where(cost == np.min(cost))  # line就是当前最小的order序号，对于已经派发的订单，他的order array weight是极大的数10000
+            return line[0]
 
-            order_array_nonzero = np.nonzero(learning_order_array)
-            order_array_weight = np.zeros((self.num_order, self.num_section))
-            # print(order_array_nonzero)
-            weight_flag = 3
-            # rulle=[1,0.8,0.5]
-            # 生成先后要去的不同工区各自的权重
-            # print(len(order_array_nonzero[0]))
-            self.order_first_section = []
-            for i in range(0, len(order_array_nonzero[0])):
-                if (i == 0):
-                    weight_flag = 3
-                elif (order_array_nonzero[0][i] == order_array_nonzero[0][i - 1]):
-                    weight_flag = weight_flag + 1
-                else:
-                    weight_flag = 3
-                # print(weight_flag)
-                order_array_weight[order_array_nonzero[0][i], order_array_nonzero[1][i]] = learning_order_array[order_array_nonzero[0][i], order_array_nonzero[1][i]]\
-                                                                                           *self.weight[weight_flag]
-            # print('tttttt')
-            # print(order_array_weight)
-            a=np.array(order_array_weight.sum(axis=1)).reshape(self.num_order,1)
-            # print(a.shape)
-            # print(cost_all.shape)
+        elif self.rule == 'Npro+time':
+            # 决策规则1pro：多项式 𝒄𝒐𝒔𝒕=𝒂×N_𝟎+𝒃×N_𝟏+𝒄×N_𝟐，多个最小就选第1个，N代表工区缓冲区+工作区（当前+即将到达的）订单数量
+            cost_all = np.dot(self.order_array_weight_all, self.section_busyness_array_pro)  # 订单次序权重 点乘 工站实时工作状态
+            a = self.order_time_sum
 
             cost = cost_all + self.order_notstart_array+a  # 将已经完成派发的订单赋极大值
             line, col = np.where(cost == np.min(cost))  # line就是当前最小的order序号，对于已经派发的订单，他的order array weight是极大的数10000
             return line[0]
 
+        elif self.rule == 'Tpro+time':
+            # 决策规则2pro：多项式 𝒄𝒐𝒔𝒕=𝒂×T_𝟎+𝒃×T_𝟏+𝒄×T_𝟐，多个最小就选第1个，T代表工区缓冲区+工作区（当前+即将到达的）订单待加工时间
+            # HF新规则：对x进行if then判断，如果某工站又是新手，又是x不满500，则增多给他派订单的机会，然后再优化订单time的选择，选择time最少的订单（通过将参数-0.5取得[-0.5,0.5]的效果）
+            self.flag_new1 = copy.deepcopy(self.section_newlearn)
+
+            for s in range(0, 6):
+                if self.section_newlearn[s] != 0:
+                    if self.section_HF_x[s] >= self.x_max:
+                        self.flag_new1[s] = 0
+            self.flag_new1.append(0)
+            self.flag_new1.append(0)
+
+            # print(self.flag_new1)
+
+            new_pro=self.section_busyness_time_array_pro-np.array(self.flag_new1).reshape((8,1))*10
+            cost_all = np.dot(self.order_array_weight_all, new_pro)  # 订单次序权重 点乘 工站实时工作状态
+            a = self.order_time_sum
+
+            cost = cost_all + self.order_notstart_array+a  # 将已经完成派发的订单赋极大值
 
 
-    # 配合Rules,Order_Select
+            line, col = np.where(cost == np.min(cost))  # line就是当前最小的order序号，对于已经派发的订单，他的order array weight是极大的数10000
+            # print(self.order_array_weight_all[line[0]])
+            # print(cost)
+            return line[0]
+
     def Order_Select_Rules(self, time):
-        order_num=self.cost_cal_rule()
+        order_num = self.cost_cal_rule()
         if order_num is not None:
             for order in self.order_notstart:
                 if order.num == order_num:
@@ -461,16 +460,16 @@ class Simulation:
         # print(f'order_pick:{order_pick.num},{order_pick.work_schedule}')
         # print(np.transpose(self.section_waiting_array))
 
-        order_now = Check_jam(order_pick, self.section_busyness_array,self.section_list[0].max_order_num)
+        order_now = Check_jam(order_pick, self.section_busyness_array, self.section_list[0].max_order_num)
 
         if order_now == 'error':
             # print('堵了，当前轮无法派发')
             # print(np.transpose(self.section_waiting_array))
-            self.order_du=self.order_du+1
+            self.order_du = self.order_du + 1
             return 0
         else:
             # 决定要派发订单后，把order now对应的section的经验都+1(不管订单用时多久都是+1)
-            self.section_HF_x=self.section_HF_x+self.order_array_01[order_now.num][0:6]
+            self.section_HF_x = self.section_HF_x + self.order_array_01[order_now.num][0:6]
             # print(self.section_HF_x)
             # print(order_now.work_schedule)
 
@@ -493,15 +492,15 @@ class Simulation:
                 break
 
         # 检测该派发的订单是否会因为被堵住而无法派发
-        order_now = Check_jam(order_pick, self.section_busyness_array,self.section_list[0].max_order_num)
+        order_now = Check_jam(order_pick, self.section_busyness_array, self.section_list[0].max_order_num)
 
         if order_now == 'error':
             # print('堵了，当前轮无法派发')
             # print(np.transpose(self.section_waiting_array))
-            self.order_du=self.order_du+1
+            self.order_du = self.order_du + 1
 
             return 0
-        else: # 成功发出
+        else:  # 成功发出
             self.Func_Assign_Order_Tools(order_now, time)
             self.order_start_num.append(order_now.num)
             # print(f'成功发出{order_now.num}')
@@ -545,15 +544,15 @@ class Simulation:
         self.section_busyness_array_pro = np.zeros((self.num_section + self.num_section_main, 1))
 
         # [par2 工区缓冲区+工作区当前订单待加工时间]section-busyness-time矩阵，表示各工区等待的订单需要在本工区加工的时间，主路是它即将去到的工区目前processing剩余的时间 [行数line:num_section,列数col:num_section[8个],顺序：012345，-1，-2]
-        self.section_busyness_time_array= np.zeros((self.num_section + self.num_section_main, 1))
-        self.section_waiting_time_array= np.zeros((self.num_section + self.num_section_main, 1))
-        self.section_processleft_time_array= np.zeros((self.num_section + self.num_section_main, 1))
+        self.section_busyness_time_array = np.zeros((self.num_section + self.num_section_main, 1))
+        self.section_waiting_time_array = np.zeros((self.num_section + self.num_section_main, 1))
+        self.section_processleft_time_array = np.zeros((self.num_section + self.num_section_main, 1))
 
         # [par2-pro 工区缓冲区+工作区 即将到达+缓冲区 订单待加工时间]section-busyness-time矩阵，表示所有工区等待的订单需要在本工区加工的时间，主路是它即将去到的工区目前processing剩余的时间 [行数line:num_section,列数col:num_section[8个],顺序：012345，-1，-2]
-        self.section_busyness_time_array_pro= np.zeros((self.num_section + self.num_section_main, 1))
+        self.section_busyness_time_array_pro = np.zeros((self.num_section + self.num_section_main, 1))
 
         # 记录工区拥堵情况
-        self.section_jam_array=np.zeros((self.num_section + self.num_section_main, 1))
+        self.section_jam_array = np.zeros((self.num_section + self.num_section_main, 1))
 
     def func_workload_recorder(self):
         # 记录当前时刻的系统的繁忙情况，收集决策规则中与 $工区$ 相关的参数
@@ -575,46 +574,47 @@ class Simulation:
         # print(f'busyness:{np.transpose(self.section_busyness_array)}')
 
         # [par1-pro 工区缓冲区+工作区 即将到达的 订单数量]section-busyness矩阵，表示各工区和主路等待订单的数量 [行数line:num_section,列数col:num_section[8个],顺序：012345，-1，-2]
-        section_insystem_array=np.sum(self.order_insystem_array,axis=0)
-        section_insystem_array_1=np.array(section_insystem_array).reshape(8,1)
-        self.section_busyness_array_pro = self.section_process_array+self.section_finish_array+section_insystem_array_1
+        section_insystem_array = np.sum(self.order_insystem_array, axis=0)
+        section_insystem_array_1 = np.array(section_insystem_array).reshape(8, 1)
+        self.section_busyness_array_pro = self.section_process_array + self.section_finish_array + section_insystem_array_1
         # print(f'insystem+:{np.transpose(section_insystem_array_1)}')
         # print(f'onprocess:{np.transpose(self.section_busyness_array)}')
         # print(f'======pro:{np.transpose(self.section_busyness_array_pro)}\n')
 
         # [par2 工区缓冲区+工作区订单待加工时间]section-busyness-time矩阵，表示各工区等待的订单需要在本工区加工的时间，主路是它即将去到的工区目前processing剩余的时间 [行数line:num_section,列数col:num_section[8个],顺序：012345，-1，-2]
-        for j in range(-2,6):
+        for j in range(-2, 6):
             # print(self.section_list[j].name)
-            if(j>=0):
-                self.section_waiting_time_array[j,0],\
-                self.section_processleft_time_array[j,0],\
-                self.section_busyness_time_array[j,0] = self.section_list[j].Count_time_section(order_array=self.order_array)
+            if (j >= 0):
+                self.section_waiting_time_array[j, 0], \
+                self.section_processleft_time_array[j, 0], \
+                self.section_busyness_time_array[j, 0] = self.section_list[j].Count_time_section(
+                    order_array=self.order_array)
         # print(f'Twait:{np.transpose(self.section_waiting_time_array)}'
         #       f'process_left:{np.transpose(self.section_processleft_time_array)}'
         #       f'busy:{np.transpose(self.section_busyness_time_array)}')
 
         # [par2-pro 工区缓冲区+工作区 即将到达+缓冲区 订单待加工时间]section-busyness-time矩阵，表示所有工区等待的订单需要在本工区加工的时间，主路是它即将去到的工区目前processing剩余的时间 [行数line:num_section,列数col:num_section[8个],顺序：012345，-1，-2]
-        order_insystem_array_time=self.order_insystem_array * self.order_array
+        order_insystem_array_time = self.order_insystem_array * self.order_array
         # print('111')
         # print(order_insystem_array_time)
-        section_insystem_array_time=np.sum(order_insystem_array_time,axis=0)
-        section_insystem_array_time_1=np.array(section_insystem_array_time).reshape(8,1)
+        section_insystem_array_time = np.sum(order_insystem_array_time, axis=0)
+        section_insystem_array_time_1 = np.array(section_insystem_array_time).reshape(8, 1)
         # print(np.transpose(section_insystem_array_time_1))
-        self.section_busyness_time_array_pro = self.section_processleft_time_array+section_insystem_array_time_1
+        self.section_busyness_time_array_pro = self.section_processleft_time_array + section_insystem_array_time_1
         # print(f'TProinsystem+:{np.transpose(section_insystem_array_time_1)}')
         # print(f'onprocess:{np.transpose(self.section_processleft_time_array)}')
         # print(f'waiting  :{np.transpose(self.section_waiting_time_array)}')
         # print(f'======pro:{np.transpose(self.section_busyness_time_array_pro)}\n')
 
         # print(self.section_busyness_array)
-        county=np.ones((6,1))
-        for i in range(0,6):
-            if self.section_process_array[i]+self.section_waiting_array[i] ==0:
-                county[i,0]=0
+        county = np.ones((6, 1))
+        for i in range(0, 6):
+            if self.section_process_array[i] + self.section_waiting_array[i] == 0:
+                county[i, 0] = 0
         # print(county)
         # # [obj1]记录全部工位实时的不平衡性：0-5
         busy_sad = 0
-        abs_list=[]
+        abs_list = []
         for i in range(0, 6):
             for j in range(i + 1, 6):
                 # busy_sad = busy_sad + abs(self.section_busyness_array[i, 0] - self.section_busyness_array[j, 0])
@@ -629,14 +629,14 @@ class Simulation:
         if (self.section_busyness_array[7, 0] != 0):
             self.data_analysis.main_jam_2 = self.data_analysis.main_jam_2 + 1  # 主路的拥堵情况
 
-        self.section_jam_array=np.zeros((self.num_section + self.num_section_main, 1))
-        for a in range(0,len(self.section_busyness_array)):
-            if a in [0,1,2,3,4,5]:
-                if self.section_busyness_array[a,0]>=6:
-                    self.section_jam_array[a,0]=1
+        self.section_jam_array = np.zeros((self.num_section + self.num_section_main, 1))
+        for a in range(0, len(self.section_busyness_array)):
+            if a in [0, 1, 2, 3, 4, 5]:
+                if self.section_busyness_array[a, 0] >= 6:
+                    self.section_jam_array[a, 0] = 1
             else:
-                if self.section_busyness_array[a,0]>=1:
-                    self.section_jam_array[a,0]=1
+                if self.section_busyness_array[a, 0] >= 1:
+                    self.section_jam_array[a, 0] = 1
         # print(self.section_jam_array)
 
     def display_section_busyness_array(self):
@@ -654,34 +654,19 @@ class Simulation:
               f'self.section_jam_array:{np.transpose(self.section_jam_array)}')
 
     # 仿真主函数
-    def run(self,rule):
+    def run(self, rule):
         # print('111')
         order_count_GA = 0
-        self.weight=rule
-        self.order_array_weight_all_list=[]
+        self.weight = rule
+        self.order_array_weight_all_list = []
         self.order_array_weight_all = self.rule_process_weight(rule=rule)
 
-        # if (self.type == 'dynamic') :
-        #     if len(self.weight)==3 and self.rule!='mix':
-        #         self.order_array_weight_all = self.rule_process_weight(rule=rule)
-        #     else:
-        #         for i in range(0,len(self.weight)):
-        #             self.order_array_weight_all_list.append(self.rule_process_weight(rule=rule[i]))
-
-        # print(self.order_array)
-        # print(self.order_array_weight_all)
-
-        # 用于输出订单完成时间的排序
-        # a = np.sum(self.order_array, axis=1)
-        # self.order_total_time_rank = sorted(range(len(a)), key=lambda k: a[k], reverse=True)
-
         # 用于标记在系统中的订单情况，可以汇总所有工区潜在需要完成的订单数量和时间
-        self.order_insystem_array= np.zeros((self.num_order,self.num_section + self.num_section_main))
-        self.data_analysis.num_order=self.num_order
+        self.order_insystem_array = np.zeros((self.num_order, self.num_section + self.num_section_main))
+        self.data_analysis.num_order = self.num_order
 
         # 用于记录各工站总工作时间
-        self.section_busyness_time=np.zeros((self.num_section,1))
-        # print(self.section_busyness_time)
+        self.section_busyness_time = np.zeros((self.num_section, 1))
         # 用于抽查路径的测试函数
         # list_test=[4821, 3084, 4028, 5470, 4371, 5553,]
         # for order in self.order_notstart:
@@ -691,28 +676,26 @@ class Simulation:
         #         print(order.work_schedule)
 
         # 开始时序仿真
-        for t in np.arange(1,self.T,self.step): #range(0, self.T):
+        for t in np.arange(1, self.T, self.step):  # range(0, self.T):
             # print("\n")
             # print(
             #     "--------------------------\n     当前时刻为%d\n--------------------------" %
             #     t)
             # display_order_list(self.section_list, type='main')
 
-
             # step1：下发新的订单
-            # print(len(self.order_notstart))
             if ((t + 1) % self.pace == 0):
                 # 记录当前状态
                 self.func_workload_recorder()
                 # print('pace is OK')
                 if (len(self.order_notstart) != 0):
-                    if (self.type == 'static'): # 按照已知顺序下发订单
+                    if (self.type == 'static'):  # 按照已知顺序下发订单
                         # print(f'count:{order_count_GA},order_num:{self.order_list_GA[order_count_GA]}')
                         flag = self.Order_Select_OriginGA(time=t, order_num=self.order_list_GA[order_count_GA])
-                        if flag == 1: # 如果成功发出，下一个就+1转到下一个位置
+                        if flag == 1:  # 如果成功发出，下一个就+1转到下一个位置
                             order_count_GA = order_count_GA + 1
 
-                    elif (self.type == 'dynamic'): # 按照实时决策下发订单
+                    elif (self.type == 'dynamic'):  # 按照实时决策下发订单
                         self.Order_Select_Rules(time=t)
                 else:
                     # print('*********无order可派发*********\n')
@@ -732,7 +715,8 @@ class Simulation:
             # step3：对每个section进行正序遍历，依次完成当前section中的任务
             #     print('\n*********对各section中订单进行遍历，依次完成*********')
             for i in range(0, 6):
-                self.section_list[i].Process_order(time=t,order_insystem_array=self.order_insystem_array,timestep=self.step)
+                self.section_list[i].Process_order(time=t, order_insystem_array=self.order_insystem_array,
+                                                   timestep=self.step)
             # print(f'guiling:{self.order_insystem_array}')
 
             # step4：对每个section+mainstream进行倒序遍历，依次对section中finish的订单进行移动
@@ -763,6 +747,9 @@ class Simulation:
             if (len(self.order_finish) == self.num_order):
                 T_last = t
                 break
+            # if sum(np.array(self.flag_new1)) == 0:
+            #     T_last = t
+            #     break
         # 展示数据（总结）
         if ((self.op_method == 'surrogate') and (self.type == 'new')) or (
                 (self.op_method == 'surrogate') and (self.type == 'rules_simple')):
@@ -778,13 +765,14 @@ class Simulation:
 
         self.data_analysis.xls_output(self.order_start, self.type)
 
+
         results = {
             'T_last': T_last,
             'jam_1': self.data_analysis.main_jam_1,
             'jam_2': self.data_analysis.main_jam_2,
-            'busy_variance': self.busy_variance_sum/T_last,
+            'busy_variance': self.busy_variance_sum / T_last,
             'order_start_list': self.order_start_num,
-            'all':T_last+self.busy_variance_sum*2662
+            'all': T_last + self.busy_variance_sum * 2662
         }
         print(results)
         # print(self.order_du)
@@ -802,17 +790,23 @@ if __name__ == "__main__":
 
     weight_list = [
         # [1, 0, 0],
-
-        # [1, 0, 0, 1, 0, 0],
-        [1, 0.8, 0.5, 1, 0.8, 0.5],
+        # [0.4479534002020955, 0.252059786580503, 0.19736248161643744, 0.0, 0.7906538723036647, 0.1579495333135128]
+        # [0.99609375, 0.3337383270263672, 0.0,1, 0, 0],
+        # [0.78448486328125, 0.2732839584350586, 0.0, 0.92315673828125, 0.0, 0.0]
+        # [0.4810476303100586, 0.1325979232788086, 0.0, 0.907501220703125, 0.0, 0.0]
+        # [0.9846572875976562, 0.5547189712524414, 0.20981597900390625, 1.0,0, 0.0]
+        # [0.4810476303100586, 0.1325979232788086, 0.0, 0.907501220703125, 0.0, 0.0]
+        # [0.4810476303100586, 0.1325979232788086, 0.0, 1, 1, 1]
+        [0.357, 0.098, 0, 0.695, 0, 0,]
+        # [1, 0.8, 0.5, 1, 0.8, 0.5],
         # [0.6246633529663086, 0.096832275390625, 0.0],
         # [0.86831, 0.13416, 0.]
         # [0.36916,0.55963,0.]
     ]
 
-    rule_list = ['Fa_origin','random','N','Npro','T','Tpro']
+    rule_list = ['Fa_origin', 'random', 'N', 'Npro', 'T', 'Tpro']
 
-    from Dynamic_simulation_config import simulation_config
+    from Dynamic_simulation_config_HF import simulation_config
 
     simulation_1 = Simulation(simulation_config)  # 初始化仿真实例
     print(simulation_1.rule)
@@ -825,12 +819,12 @@ if __name__ == "__main__":
         jam_1 = results['jam_1']
         jam_2 = results['jam_2']
         busy_variance = results['busy_variance']
-        sum_result = T_last+ busy_variance / 28
+        sum_result = T_last + busy_variance / 28
 
         # print(f"订单派发列表:{results['order_start_list']}")
         # print(T_last, jam_1,jam_2,busy_variance)
         print(results['order_start_list'])
-        print(T_last,busy_variance)
+        print(T_last, busy_variance)
 
         # simulation_1.data_analysis.plot_results_plotly_nomain()  # 绘图
         # simulation_1.data_analysis.plot_results_plotly()
