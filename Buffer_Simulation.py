@@ -12,11 +12,11 @@ import os
 import random
 
 from Buffer_Class import Sku, Section, Order, Time, Data_Analysis
-from Other_Functions import Find_Section_now_num, Check_jam, Check_jam_all, \
+from a_Other_Functions import Find_Section_now_num, Check_jam, Check_jam_all, \
     display_order_list_simple, display_order_list
-from Fast_track import find_shorted_path
+from Buffer_Fast_track import find_shorted_path
 
-from Gantt import DrawGantt
+from Tool_Gantt import DrawGantt
 from itertools import chain
 
 
@@ -80,12 +80,12 @@ class Simulation:
             }
             self.section_list.append(Section(section_input))
 
+        # main
         for j in range(-(self.num_section_main), 0, 1):
             section_input = {
                 'name': 'section_{}'.format(j),  # 分区名称
                 'num': j,  # 分区序号
                 'max_order_num': 1  # 最多停滞order数量
-
             }
             self.section_list.append(Section(section_input))
         self.section_list_copy = copy.deepcopy(self.section_list)

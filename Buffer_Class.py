@@ -107,6 +107,7 @@ class Order:
         self.weighted_cost = 0  #订单cost
         # self.duedate=order_config['duedate']
 
+
     # 函数
     # 计算订单cost
     def Cost_cal(self, section_list,weight):
